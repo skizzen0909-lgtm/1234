@@ -1,0 +1,2794 @@
+﻿
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\AI\AdvancedAI.h ===
+// src/AI/AdvancedAI.h
+#ifndef ADVANCEDAI_H
+#define ADVANCEDAI_H
+
+#include "AI/AIBase.h"
+#include "AI/AIPersonality.h"
+#include "AI/MemorySystem.h"
+#include "AI/EmotionalSystem.h"
+#include "AI/GoalSystem.h" 
+#include <memory>
+#include <vector>
+#include <random>
+
+class Entity;
+
+enum class AIState {
+    IDLE,
+    WANDER,
+    FOLLOW,
+    ATTACK,
+    FLEE,
+    GATHER,
+    SOCIALIZE,
+    ALERT
+};
+
+class AdvancedAI : public AIBase {
+private:
+    AIPersonality personality;
+    MemorySystem memorySystem;
+    EmotionalSystem emotionalSystem;
+    std::unique_ptr<GoalSystem> goalSystem; 
+
+    AIState currentState;
+    std::mt19937 gen;
+    std::uniform_int_distribution<> dist;
+
+    std::weak_ptr<Entity> followTarget;
+    std::weak_ptr<Entity> fleeTarget;
+    std::weak_ptr<Entity> currentTarget;
+
+    // Вспомогательные методы
+    std::shared_ptr<Entity> findHostileTarget() const;
+    std::shared_ptr<Entity> findFriendlyTarget() const;
+
+    // Дерево решений
+    void assessThreats();
+    void assessOpportunities();
+    void makeDecision(Entity* entity);
+   
+
+    // Логика движения
+    std::pair<int, int> wanderLogic(Entity* entity);
+    std::pair<int, int> followLogic(Entity* entity);
+    std::pair<int, int> fleeLogic(Entity* entity);
+    std::pair<int, int> attackMovementLogic(Entity* entity);
+
+    // Выполнение действий
+    void executeSocialize(Entity* entity);
+    void checkForLoot(Entity* entity);
+    void executeWander(Entity* entity);
+    void executeFollow(Entity* entity);
+    void executeFlee(Entity* entity);
+    void executeAttack(Entity* entity);
+    void executeIdle(Entity* entity);
+    void executeAlert(Entity* entity);
+
+public:
+    explicit AdvancedAI(const AIPersonality& personality);
+    ~AdvancedAI() override = default;
+
+    // Геттеры
+    const AIPersonality& getPersonality() const;
+    AIState getCurrentState() const;
+    MemorySystem& getMemorySystem();
+    const MemorySystem& getMemorySystem() const;
+    EmotionalSystem& getEmotionalSystem();
+    const EmotionalSystem& getEmotionalSystem() const;
+    GoalSystem* getGoalSystem();
+    // Сеттеры
+    void setPersonality(const AIPersonality& newPersonality);
+    void setFollowTarget(const std::shared_ptr<Entity>& target);
+    void setFleeTarget(const std::shared_ptr<Entity>& target);
+    void setCurrentTarget(const std::shared_ptr<Entity>& target);
+    void setState(AIState newState);
+    // Основные методы
+    void update(float deltaTime, Entity* entity) override;
+    void onEntityEncounter(Entity* self, const std::shared_ptr<Entity>& other) override;
+    std::pair<int, int> decideMovement(Entity* entity);
+};
+
+#endif // ADVANCEDAI_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\AI\AIBase.h ===
+// src/AI/AIBase.h
+#ifndef AIBASE_H
+#define AIBASE_H
+#include <memory>
+class Entity;
+class AIBase {
+public:
+    AIBase() = default;
+    virtual ~AIBase() = default;
+    virtual void update(float deltaTime, Entity* entity) = 0;
+    virtual void onEntityEncounter(Entity* self, const std::shared_ptr<Entity>& other) {}
+    virtual void init() {} // Р”РѕР±Р°РІР»РµРЅРѕ: РІРёСЂС‚СѓР°Р»СЊРЅС‹Р№ РјРµС‚РѕРґ РґР»СЏ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё
+    AIBase(const AIBase&) = delete;
+    AIBase& operator=(const AIBase&) = delete;
+};
+#endif // AIBASE_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\AI\AIPersonality.h ===
+// src/AI/AIPersonality.h
+#ifndef AIPERSONALITY_H
+#define AIPERSONALITY_H
+
+struct AIPersonality {
+    float aggression = 0.5f;
+    float curiosity = 0.5f;
+    float sociability = 0.5f;
+    float caution = 0.5f;
+};
+
+#endif // AIPERSONALITY_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\AI\EmotionalSystem.h ===
+// src/AI/EmotionalSystem.h
+#ifndef EMOTIONALSYSTEM_H
+#define EMOTIONALSYSTEM_H
+
+#include <string> 
+
+class EmotionalSystem {
+private:
+    float currentMood;
+    float moodDecayRate;
+
+public:
+    EmotionalSystem(float initialMood = 0.0f, float decayRate = 0.1f);
+    ~EmotionalSystem() = default;
+
+    float getMood() const;
+    std::string getMoodDescription() const; // РћР±СЉСЏРІР»РµРЅ
+
+    void setBaseMood(float mood);
+    void setMoodDecayRate(float rate);
+
+    void addMoodModifier(float modifier);
+    void update(float deltaTime);
+
+    EmotionalSystem(const EmotionalSystem&) = delete;
+    EmotionalSystem& operator=(const EmotionalSystem&) = delete;
+};
+
+#endif // EMOTIONALSYSTEM_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\AI\GoalSystem.h ===
+// AI/GoalSystem.h
+#pragma once
+#include <vector>
+#include <string>
+#include <functional>
+#include <memory>
+
+class Entity;
+
+struct Goal {
+    std::string id;
+    std::string description;
+    float priority = 0.0f;           
+    std::function<bool(Entity*)> condition;
+    std::function<void(Entity*)> action;
+    bool isCompleted = false;        
+};
+
+class GoalSystem {
+private:
+    std::vector<Goal> activeGoals;
+    std::vector<Goal> completedGoals;
+
+public:
+    GoalSystem();
+
+    void addGoal(const Goal& goal);
+    void update(Entity* owner, float deltaTime);
+    Goal* getCurrentGoal();
+    void completeGoal(const std::string& goalId);
+};
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\AI\MemorySystem.h ===
+// AI/MemorySystem.h
+
+#ifndef MEMORYSYSTEM_H
+#define MEMORYSYSTEM_H
+
+#include <vector>
+#include <memory>
+#include <chrono>
+#include <string>
+
+class Entity; // Forward declaration
+
+struct MemoryEvent {
+    std::string eventType;
+    std::weak_ptr<Entity> entity;
+    std::chrono::steady_clock::time_point timestamp;
+    float importance;
+    std::string description; // Добавьте это поле
+
+    MemoryEvent(const std::string& type, std::shared_ptr<Entity> ent,
+        float imp = 1.0f, const std::string& desc = "")
+        : eventType(type), entity(ent), timestamp(std::chrono::steady_clock::now()),
+        importance(imp), description(desc) {
+    }
+};
+
+class MemorySystem {
+private:
+    std::vector<MemoryEvent> memories;
+    float decayRate = 0.1f; // Скорость забывания
+
+    // Время последней атаки
+    std::chrono::steady_clock::time_point lastAttackedTime;
+    std::chrono::steady_clock::time_point lastSocializedTime;
+
+public:
+    MemorySystem() = default;
+    ~MemorySystem() = default;
+
+    void addMemory(const std::string& eventType, std::shared_ptr<Entity> entity, float importance = 1.0f);
+    void forgetOldMemories(); // Удаляет старые или маловажные воспоминания
+    void decayMemories(float deltaTime); // Постепенно снижает важность
+
+    // Геттеры для проверки состояния
+    bool hasHostileEntities() const;
+    bool hasFriendlyEntities() const; // Для простоты, любые встречи
+    bool wasRecentlyAttacked() const;
+    bool wasRecentlySocialized() const;
+    void setLastAttackedTime();
+    void setLastSocializedTime();
+
+    const std::vector<MemoryEvent>& getMemories() const { return memories; }
+};
+
+#endif // MEMORYSYSTEM_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Core\Engine.h ===
+// Core/Engine.h
+#ifndef ENGINE_H
+#define ENGINE_H
+
+#include <memory>
+#include <stack>
+#include <string>
+
+//class GraphicsSystem;
+class AdvancedGraphicsSystem;
+class GameState;
+
+class Engine {
+private:
+    static Engine* instance;
+    std::unique_ptr<AdvancedGraphicsSystem> graphicsSystem;
+    std::stack<std::unique_ptr<GameState>> stateStack;
+    bool running;
+    float timeScale;
+
+    Engine(); // Private constructor for singleton
+
+public:
+    ~Engine();
+
+    static Engine* getInstance();
+    static void destroyInstance();
+
+    bool initialize();
+    void shutdown();
+    void run();
+
+    void pushState(std::unique_ptr<GameState> state);
+    void popState();
+    void changeState(std::unique_ptr<GameState> state);
+    GameState* getCurrentState() const;
+
+    bool isRunning() const;
+    void stop();
+    void setTimeScale(float scale);
+    float getTimeScale() const;
+
+    AdvancedGraphicsSystem* getGraphicsSystem() const; // Добавлен метод
+};
+
+#endif
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Decisions\Decision.h ===
+// Decisions/Decision.h
+#ifndef DECISION_H
+#define DECISION_H
+
+#include <string>
+#include <vector>
+#include <memory>
+
+// Forward declarations
+class Entity;
+class Event;
+
+class Decision {
+private:
+    std::string decisionId;
+    std::string description;
+    std::vector<std::shared_ptr<Event>> consequences;
+
+public:
+    // Конструктор
+    Decision(const std::string& decisionId, const std::string& description);
+
+    // Деструктор
+    virtual ~Decision() = default;
+
+    // Геттеры
+    const std::string& getDecisionId() const;
+    const std::string& getDescription() const;
+    const std::vector<std::shared_ptr<Event>>& getConsequences() const;
+
+    // Сеттеры
+    void setDescription(const std::string& description);
+
+    // Управление последствиями
+    void addConsequence(std::shared_ptr<Event> event);
+    void removeConsequence(const std::shared_ptr<Event>& event);
+
+    // Методы принятия решения
+    
+
+    // Запрет копирования
+    Decision(const Decision&) = delete;
+    Decision& operator=(const Decision&) = delete;
+};
+
+#endif // DECISION_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Entities\Enemy.h ===
+// src/Entities/Enemy.h
+#ifndef ENEMY_H
+#define ENEMY_H
+
+#include "Entities/Entity.h"
+#include <string>
+
+class Enemy : public Entity {
+private:
+    std::string enemyType;
+    int attackPower;
+    int lootExperience;
+
+public:
+    Enemy(const std::string& name, const std::string& enemyType, int health = 50, int attack = 10);
+    ~Enemy() override = default;
+
+    // Переопределение виртуальных методов
+    std::string getType() const override;
+
+    // Геттеры
+    int getAttackPower() const;
+    const std::string& getEnemyType() const;
+    int getLootExperience() const;
+
+    // Сеттеры (добавлены)
+    void setAttackPower(int power);
+    void setEnemyType(const std::string& type);
+    void setLootExperience(int exp);
+
+    // Методы
+    void takeDamage(int damage) override;
+    // void update(float deltaTime) override; // Убран, используем базовый или добавим позже, если нужно специфическое поведение
+
+    // Запрет копирования (наследуется от Entity)
+};
+
+#endif // ENEMY_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Entities\Entity.h ===
+/// src/Entities/Entity.h
+#ifndef ENTITY_H
+#define ENTITY_H
+
+#include "AI/AIBase.h"
+#include <string>
+#include <memory>
+#include <vector>
+#include <unordered_map>
+// Forward declarations
+class Location;
+class AIBase;
+class CombatEvent;
+class Quest;
+class Item;
+class TileBasedLocation;
+class Entity : public std::enable_shared_from_this<Entity> {
+protected:
+    std::string name;
+    int health;
+    int maxHealth;
+    int posX, posY;
+    Location* currentLocation;
+    // --- ИИ ---
+    std::unique_ptr<AIBase> ai;
+    float aiUpdateTimer = 0.0f;
+    // --- Движение ---
+    float moveTimer = 0.0f;     
+    static constexpr float moveInterval = 0.5f;
+    // Сделаем поля публичными для прямого доступа ИИ (или создать сеттеры)
+public: // <<< ИЗМЕНЕНО С protected НА public
+    int plannedMoveX;
+    int plannedMoveY;
+    bool hasPlannedMove;
+protected: // <<< Вернемся к protected для остальных полей
+    // --- Инвентарь и квесты ---
+    std::vector<std::shared_ptr<Item>> inventory;
+    std::vector<std::shared_ptr<Quest>> activeQuests;
+    // --- Статистика ---
+    int level;
+    int experience;
+    std::unordered_map<std::string, int> stats;
+public:
+    Entity(const std::string& name, int health = 100);
+    virtual ~Entity() = default;
+    // Геттеры
+    const std::string& getName() const;
+    int getHealth() const;
+    int getMaxHealth() const;
+    std::pair<int, int> getPosition() const;
+    Location* getCurrentLocation() const;
+    const std::vector<std::shared_ptr<Item>>& getInventory() const;
+    const std::vector<std::shared_ptr<Quest>>& getActiveQuests() const;
+    int getLevel() const;
+    int getExperience() const;
+    int getStat(const std::string& statName) const;
+    // Сеттеры
+    void setName(const std::string& newName);
+    virtual void setHealth(int newHealth);
+    void setMaxHealth(int newMaxHealth);
+    void setPosition(int x, int y);
+    void setCurrentLocation(Location* location);
+    // --- Логика ---
+    virtual bool isAlive() const;
+    virtual void takeDamage(int damage);
+    virtual void heal(int amount);
+    virtual void gainExperience(int exp);
+    virtual void levelUp();
+    virtual std::string getType() const = 0;
+    // --- Инвентарь ---
+    void addItem(std::shared_ptr<Item> item);
+    void removeItem(std::shared_ptr<Item> item);
+    bool hasItem(const std::string& itemName) const;
+    // --- Квесты ---
+    void addQuest(std::shared_ptr<Quest> quest);
+    void completeQuest(std::shared_ptr<Quest> quest);
+    // --- ИИ ---
+    void setAI(std::unique_ptr<AIBase> newAI);
+    AIBase* getAI() const;
+    virtual void updateAI(float deltaTime);
+    // --- Движение ---
+    virtual std::pair<int, int> decideMovement();
+    virtual void updateMovement(float deltaTime);
+    // --- Обновление ---
+    virtual void update(float deltaTime);
+    virtual void performAutoAction(float deltaTime) {}
+    // Запрет копирования
+    Entity(const Entity&) = delete;
+    Entity& operator=(const Entity&) = delete;
+};
+#endif // ENTITY_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Entities\NPC.h ===
+// Entities/NPC.h
+#ifndef NPC_H
+#define NPC_H
+
+#include "Entity.h"
+#include <string>
+#include <memory>
+
+// Forward declarations
+class Dialogue;
+
+class NPC : public Entity {
+protected:
+    std::string npcType;
+    int relationshipLevel; // Отношение к игроку
+
+public:
+    // Конструктор
+    NPC(const std::string& name, const std::string& npcType, int health = 50);
+
+    // Переопределение виртуальных методов
+    std::string getType() const override;
+
+    // Геттеры
+    const std::string& getNpcType() const;
+    int getRelationshipLevel() const;
+
+    // Сеттеры
+    void setNpcType(const std::string& type);
+    void setRelationshipLevel(int level);
+
+    // Методы взаимодействия
+    virtual void interact(Entity* player);
+    virtual std::string getDialogue() const;
+
+    // Запрет копирования (наследуется от Entity)
+};
+
+#endif // NPC_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Entities\Player.h ===
+// Entities/Player.h
+#ifndef PLAYER_H
+#define PLAYER_H
+
+#include "Entity.h"
+#include <string>
+#include <random>
+
+class Player : public Entity {
+private:
+    int level;
+    int experience;
+    int experienceToNextLevel;
+    std::mt19937 gen;
+    std::uniform_int_distribution<> moveDist;
+
+public:
+    Player(const std::string& name, int health = 100);
+    ~Player() override = default;
+
+    // Тип сущности
+    std::string getType() const override;
+
+    // Урон и исцеление
+    void takeDamage(int damage) override;
+    void heal(int amount) override;
+
+    // Автоматические действия
+    void performAutoAction(float deltaTime) override;
+
+    // Уровень и опыт
+    int getLevel() const;
+    int getExperience() const;
+    int getExperienceToNextLevel() const;
+
+    void setLevel(int lvl);
+    void setExperience(int exp);
+    void setExperienceToNextLevel(int exp);
+
+    void gainExperience(int exp);
+    void levelUp();
+
+    // Запрет копирования (унаследовано от Entity)
+};
+
+#endif // PLAYER_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Entities\VillagerNPC.h ===
+// Entities/VillagerNPC.h
+#ifndef VILLAGERNPC_H
+#define VILLAGERNPC_H
+
+#include "NPC.h"
+#include <string>
+#include <memory>
+
+// Forward declarations
+class Entity;
+class Quest;
+
+class VillagerNPC : public NPC {
+private:
+    std::string occupation;
+    std::vector<std::shared_ptr<Quest>> offeredQuests;
+
+public:
+    // Конструктор
+    VillagerNPC(const std::string& name, const std::string& occupation, int health = 50);
+
+    // Переопределение виртуальных методов
+    std::string getType() const override;
+    void interact(Entity* player) override;
+    std::string getDialogue() const override;
+
+    // Геттеры
+    const std::string& getOccupation() const;
+    const std::vector<std::shared_ptr<Quest>>& getOfferedQuests() const;
+
+    // Сеттеры
+    void setOccupation(const std::string& occupation);
+
+    // Управление квестами
+    void addQuest(std::shared_ptr<Quest> quest);
+    void removeQuest(const std::shared_ptr<Quest>& quest);
+
+    // Запрет копирования (наследуется от NPC)
+    std::pair<int, int> decideMovement() override;
+};
+
+#endif // VILLAGERNPC_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Events\CombatEvent.h ===
+// Events/CombatEvent.h
+#ifndef COMBATEVENT_H
+#define COMBATEVENT_H
+
+#include "Event.h"
+#include <memory>
+
+// Forward declarations
+class Entity;
+
+class CombatEvent : public Event {
+private:
+    std::shared_ptr<Entity> attacker;
+    std::shared_ptr<Entity> defender;
+    int damage;
+
+public:
+    // Конструктор
+    CombatEvent(std::shared_ptr<Entity> attacker, std::shared_ptr<Entity> defender, int damage);
+
+    // Реализация виртуальных методов
+    void execute() override;
+    std::string getDescription() const override;
+
+    // Геттеры
+    std::shared_ptr<Entity> getAttacker() const;
+    std::shared_ptr<Entity> getDefender() const;
+    int getDamage() const;
+};
+
+#endif // COMBATEVENT_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Events\Event.h ===
+// src/Events/Event.h
+#ifndef EVENT_H
+#define EVENT_H
+
+
+#include <memory>
+#include <string>
+
+// Forward declarations
+class Entity;
+
+class Event {
+protected:
+    std::string eventId;
+    bool handled;
+
+public:
+    // Конструктор
+    explicit Event(const std::string& eventId);
+
+    // Виртуальный деструктор - КРИТИЧНО ВАЖНО
+    virtual ~Event() = default;
+
+    // Геттеры
+    const std::string& getEventId() const;
+    bool isHandled() const;
+
+    // Сеттеры
+    void setHandled(bool handled);
+
+    // Виртуальные методы
+    virtual void execute() = 0;
+    virtual std::string getDescription() const = 0;
+
+    // Запрет копирования
+    Event(const Event&) = delete;
+    Event& operator=(const Event&) = delete;
+};
+
+#endif // EVENT_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Events\EventManager.h ===
+// Events/EventsManager.h
+
+#ifndef EVENTMANAGER_H
+#define EVENTMANAGER_H
+
+#include <vector>
+#include <memory>
+#include <unordered_map>
+#include <functional>
+#include "Event.h"
+
+class EventManager {
+public:
+    using Listener = std::function<void(const std::shared_ptr<Event>&)>;
+
+    static EventManager& getInstance();
+
+    void subscribe(const std::string& eventType, const Listener& listener);
+    void unsubscribe(const std::string& eventType, const Listener& listener);
+    void emit(const std::shared_ptr<Event>& event);
+
+    // Удаляем копирование
+    EventManager(const EventManager&) = delete;
+    EventManager& operator=(const EventManager&) = delete;
+
+private:
+    EventManager() = default;
+    ~EventManager() = default;
+
+    std::unordered_map<std::string, std::vector<Listener>> listeners;
+};
+
+#endif // EVENTMANAGER_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Events\PeacefulActivityEvent.h ===
+// Events/PeacefulActivityEvent.h
+#ifndef PEACEFULACTIVITYEVENT_H
+#define PEACEFULACTIVITYEVENT_H
+
+#include "Event.h"
+#include <string>
+#include <memory>
+
+// Forward declarations
+class Entity;
+
+enum class ActivityType {
+    TRADE,
+    REST,
+    CRAFT,
+    TRAIN,
+    SOCIALIZE,
+    EXPLORE
+};
+
+class PeacefulActivityEvent : public Event {
+private:
+    ActivityType activityType;
+    std::string activityDescription;
+    int duration; // В минутах
+    int experienceGained;
+    Entity* participant1; // Слабая ссылка
+    Entity* participant2; // Слабая ссылка (может быть nullptr)
+
+public:
+    // Конструктор
+    PeacefulActivityEvent(ActivityType type, const std::string& description,
+        int duration, int experienceGained = 0,
+        Entity* participant1 = nullptr, Entity* participant2 = nullptr);
+
+    // Переопределение виртуальных методов
+    void execute() override;
+    std::string getDescription() const override;
+
+    // Геттеры
+    ActivityType getActivityType() const;
+    const std::string& getActivityDescription() const;
+    int getDuration() const;
+    int getExperienceGained() const;
+    Entity* getParticipant1() const;
+    Entity* getParticipant2() const;
+
+    // Сеттеры
+    void setActivityDescription(const std::string& description);
+    void setDuration(int duration);
+    void setExperienceGained(int exp);
+    void setParticipant1(Entity* participant);
+    void setParticipant2(Entity* participant);
+};
+
+#endif // PEACEFULACTIVITYEVENT_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Events\StoryDecisionEvent.h ===
+// Events/StoryDecisionEvent.h
+#ifndef STORYDECISIONEVENT_H
+#define STORYDECISIONEVENT_H
+
+#include "Event.h"
+#include <string>
+#include <vector>
+#include <memory>
+
+// Forward declarations
+class Decision;
+class Entity;
+
+class StoryDecisionEvent : public Event {
+private:
+    std::string storyId;
+    std::string storyText;
+    std::vector<std::shared_ptr<Decision>> availableDecisions;
+    Entity* triggeringEntity; // Слабая ссылка
+
+public:
+    // Конструктор
+    StoryDecisionEvent(const std::string& storyId, const std::string& storyText,
+        Entity* triggeringEntity = nullptr);
+
+    // Переопределение виртуальных методов
+    void execute() override;
+    std::string getDescription() const override;
+
+    // Управление решениями
+    void addDecision(std::shared_ptr<Decision> decision);
+    void removeDecision(const std::shared_ptr<Decision>& decision);
+    const std::vector<std::shared_ptr<Decision>>& getAvailableDecisions() const;
+
+    // Геттеры
+    const std::string& getStoryId() const;
+    const std::string& getStoryText() const;
+    Entity* getTriggeringEntity() const;
+
+    // Сеттеры
+    void setStoryText(const std::string& text);
+    void setTriggeringEntity(Entity* entity);
+};
+
+#endif // STORYDECISIONEVENT_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\GameState\EnhancedPlayState.h ===
+// GameState/EnhancedPlayState.h
+#pragma once
+
+#include "GameState.h"
+#include "Entities/Player.h"
+#include "World/GameWorld.h"
+#include "Graphics/UISystem.h"
+#include "Utils/PerlinNoise.h"
+#include "World/TileMap.h"
+#include <memory>
+#include <vector>
+#include <unordered_map>
+
+// Forward declarations
+class AIBase;
+
+class EnhancedPlayState : public GameState {
+private:
+    std::unordered_map<std::string, std::unique_ptr<AIBase>> aiBehaviors;
+    std::shared_ptr<Player> player;
+    std::unique_ptr<GameWorld> gameWorld;
+    std::unique_ptr<UISystem> uiSystem;
+    float timeAccumulator = 0.0f;
+    bool paused = false;
+
+    void initializeAI();          
+    void handlePlayerInput();    
+   
+    void expandWorld(TileBasedLocation* location, std::pair<int, int> playerPos);
+    void generateTerrainForTile(TileMap* tileMap, int x, int y);
+    std::unique_ptr<PerlinNoise> baseNoise;
+public:
+    EnhancedPlayState();
+    ~EnhancedPlayState() override;
+    void enter() override;
+    void exit() override;
+    void update(float deltaTime) override;
+    void handleInput() override;
+    void render() override;
+    void togglePause();
+    void showInventory();
+    void showSkills();
+    void showMap();
+};
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\GameState\GameState.h ===
+// GameState/GameState.h
+#ifndef GAMESTATE_H
+#define GAMESTATE_H
+
+#include <memory>
+#include <string>
+
+class GameState {
+protected:
+    std::string stateId;
+
+public:
+    explicit GameState(const std::string& stateId);
+    virtual ~GameState() = default;
+
+    const std::string& getStateId() const;
+
+    virtual void enter() = 0;
+    virtual void exit() = 0;
+    virtual void update(float deltaTime) = 0;
+    virtual void handleInput() = 0;
+    virtual void render() = 0; // 👈 Добавляем виртуальный метод render
+
+    GameState(const GameState&) = delete;
+    GameState& operator=(const GameState&) = delete;
+};
+
+#endif // GAMESTATE_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Graphics\AdvancedGraphicsSystem.h ===
+// Graphics/AdvancedGraphicsSystem.h
+#pragma once
+#include <SFML/Graphics.hpp>
+#include <memory>
+#include <unordered_map>
+#include <vector>
+#include <string>
+#include <iostream>
+#include "Types/Types.h"
+#include "UISystem.h"
+
+// Forward declarations
+class Entity;
+class TileBasedLocation;
+class TileMap;
+
+// Определение слоев рендеринга
+enum class RenderLayer {
+    BACKGROUND,
+    TERRAIN,
+    OBJECTS,
+    ENTITIES,
+    EFFECTS,
+    UI
+};
+
+// Класс для управления рендерингом
+class AdvancedGraphicsSystem {
+private:
+    sf::RenderWindow window;
+    std::unordered_map<RenderLayer, std::unique_ptr<sf::RenderTexture>> layerTextures;
+    std::unordered_map<RenderLayer, sf::Sprite> layerSprites;
+    std::unordered_map<std::string, sf::Texture> textureCache;
+    std::unordered_map<std::string, std::unique_ptr<sf::Shader>> shaderCache; // Используем unique_ptr
+    std::unordered_map<std::string, sf::Font> fontCache;
+    sf::View gameView;
+    sf::View uiView;
+    bool initialized = false;
+    float time = 0.0f;
+    // Добавляем член для UI системы
+    std::unique_ptr<UISystem> uiSystem;
+    // --- Методы для загрузки ресурсов ---
+    void loadTextures();
+    void loadShaders();
+    void loadFonts();
+    void createLayerTextures();
+    // Методы для рендеринга каждого слоя
+    void renderBackgroundLayer();
+    void renderTerrainLayer(const TileMap* tileMap);
+    void renderObjectsLayer(const TileMap* tileMap);
+    void renderEntitiesLayer(const std::vector<std::shared_ptr<Entity>>& entities);
+    void renderEffectsLayer();
+    
+public:
+    AdvancedGraphicsSystem();
+    ~AdvancedGraphicsSystem();
+    bool initialize();
+    void shutdown();
+    void beginFrame();
+    void renderWorld(const std::shared_ptr<Entity>& player,
+        const std::vector<std::shared_ptr<Entity>>& entities,
+        const TileBasedLocation* location);
+    void endFrame();
+    void handleEvents();
+    bool isWindowOpen() const;
+    sf::RenderWindow& getWindow();
+    sf::View& getGameView();
+    // Методы для работы с камерой
+    void setCameraPosition(float x, float y);
+    void setCameraZoom(float zoom);
+    void setCameraRotation(float rotation);
+    // Методы для работы с текстурами
+    sf::Texture* getTexture(const std::string& name);
+    bool loadTexture(const std::string& name, const std::string& path);
+    // Методы для работы с шейдерами
+    sf::Shader* getShader(const std::string& name);
+    bool loadShader(const std::string& name, const std::string& vertexPath, const std::string& fragmentPath);
+    // Методы для работы с шрифтами
+    sf::Font* getFont(const std::string& name);
+    bool loadFont(const std::string& name, const std::string& path);
+    // Методы для работы с эффектами
+    void addParticleEffect(const sf::Vector2f& position, const std::string& effectType, int count);
+    void updateParticleEffects(float deltaTime);
+    // Применение шейдеров
+    void applyLighting();
+    void applyPostProcessing();
+};
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Graphics\ShaderManager.h ===
+// Graphics/ShaderManager.h
+#pragma once
+#include <SFML/Graphics.hpp>
+#include <unordered_map>
+#include <string>
+#include <memory>
+
+class ShaderManager {
+private:
+    std::unordered_map<std::string, std::unique_ptr<sf::Shader>> shaderCache;
+public:
+    bool loadShader(const std::string& name, const std::string& vertexFile, const std::string& fragmentFile);
+    sf::Shader* getShader(const std::string& name);
+    void clear();
+};
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Graphics\UISystem.h ===
+// src/UI/UISystem.h
+#ifndef UISYSTEM_H
+#define UISYSTEM_H
+
+#include "Core/Engine.h"  
+#include <memory>
+#include <SFML/Graphics.hpp>
+#include <string>
+#include <vector>
+
+// Forward declarations
+class Entity;
+class Player;
+class QuestLogUI;
+class InventoryUI;
+class SkillTreeUI;
+class DialogSystem;
+class AdvancedGraphicsSystem;
+
+class UISystem {
+private:
+    bool initialized;
+    sf::RenderWindow* window;
+    Entity* playerEntity;
+
+    // --- РћСЃРЅРѕРІРЅС‹Рµ СЌР»РµРјРµРЅС‚С‹ UI ---
+    sf::Font font;
+    sf::Text hudText;
+    sf::RectangleShape hudBackground;
+
+    // --- UI РџР°РЅРµР»Рё ---
+    std::unique_ptr<InventoryUI> inventoryUI;
+    std::unique_ptr<QuestLogUI> questLogUI;
+    std::unique_ptr<SkillTreeUI> skillTreeUI;
+    std::unique_ptr<DialogSystem> dialogSystem;
+
+    // --- РЎРѕРѕР±С‰РµРЅРёСЏ ---
+    struct TimedMessage {
+        sf::Text text;
+        sf::Clock timer;
+    };
+    std::vector<TimedMessage> messages;
+
+    // --- Р”РёР°Р»РѕРіРѕРІС‹Рµ СЌР»РµРјРµРЅС‚С‹ ---
+    sf::RectangleShape dialogBox;
+    sf::Text speakerText;
+    sf::Text dialogText;
+    sf::Texture speakerPortrait;
+    sf::Sprite portraitSprite;
+    std::vector<sf::RectangleShape> optionBoxes;
+    std::vector<sf::Text> optionTexts;
+
+    // --- Р’РЅСѓС‚СЂРµРЅРЅРёРµ РјРµС‚РѕРґС‹ ---
+    void loadFont();
+    void setupHUD();
+    void updateHUD();
+
+public:
+    UISystem();
+    ~UISystem();
+
+    // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ Рё РѕС‡РёСЃС‚РєР° вЂ” РўРћР›Р¬РљРћ РћР‘РЄРЇР’Р›Р•РќРР•!
+    bool initialize(sf::RenderWindow& targetWindow);
+    void shutdown();
+
+    // РћСЃРЅРѕРІРЅС‹Рµ РјРµС‚РѕРґС‹ UI
+    void showGameHUD();
+    void hideGameHUD();
+    bool isGameHUDVisible() const;
+
+    // РЎРѕРѕР±С‰РµРЅРёСЏ
+    void showMessage(const std::string& message);
+    void clearMessages();
+
+    void showDialog(const std::string& dialogueId, Player* player, Entity* npc);
+    void endDialog();
+    bool isInDialog() const;
+    DialogSystem* getDialogSystem() const;
+
+    void setPlayerEntity(Entity* player);
+
+    // РџР°РЅРµР»Рё
+    void showInventory();
+    void hideInventory();
+    bool isInventoryVisible() const;
+
+    void showQuestLog();
+    void hideQuestLog();
+    bool isQuestLogVisible() const;
+
+    void showSkillTree();
+    void hideSkillTree();
+    bool isSkillTreeVisible() const;
+
+    // РњРµС‚РѕРґС‹ С†РёРєР»Р°
+    void update(float deltaTime);
+    void draw(sf::RenderTarget& target);
+    bool isActive() const;
+    void handleEvent(const sf::Event& event);
+    void hideAll(); // РўРµРїРµСЂСЊ РїСѓР±Р»РёС‡РЅС‹Р№ РјРµС‚РѕРґ
+};
+
+#endif // UISYSTEM_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Inventory\Inventory.h ===
+#ifndef INVENTORY_H
+#define INVENTORY_H
+
+#include <vector>
+#include <string>
+#include <memory>
+
+// Forward declarations
+class Item;
+
+class Inventory {
+private:
+    std::vector<std::shared_ptr<Item>> items;
+    int maxCapacity;
+
+public:
+    // Конструкторы
+    explicit Inventory(int maxCapacity = 20);
+    ~Inventory() = default;
+
+    // Запрет копирования
+    Inventory(const Inventory&) = delete;
+    Inventory& operator=(const Inventory&) = delete;
+
+    // Методы управления предметами
+    bool addItem(std::shared_ptr<Item> item);
+    bool removeItem(const std::shared_ptr<Item>& item);
+    bool hasItem(const std::shared_ptr<Item>& item) const;
+    void clear();
+
+    // Геттеры
+    const std::vector<std::shared_ptr<Item>>& getItems() const;
+    int getItemCount() const;
+    int getMaxCapacity() const;
+    bool isFull() const;
+
+    // Поиск предметов
+    std::shared_ptr<Item> findItemByName(const std::string& name) const;
+};
+
+#endif // INVENTORY_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Items\Item.h ===
+#ifndef ITEM_H
+#define ITEM_H
+
+#include <string>
+#include <memory>
+
+enum class ItemType {
+    WEAPON,
+    ARMOR,
+    CONSUMABLE,
+    QUEST_ITEM,
+    MISC
+};
+
+enum class ItemRarity {
+    COMMON,
+    UNCOMMON,
+    RARE,
+    EPIC,
+    LEGENDARY
+};
+
+class Item {
+protected:
+    std::string id;
+    std::string name;
+    std::string description;
+    ItemType type;
+    ItemRarity rarity;
+    int value; // Р—РЅР°С‡РµРЅРёРµ РІ РјРѕРЅРµС‚Р°С…
+    int weight; // Р’РµСЃ РїСЂРµРґРјРµС‚Р°
+
+public:
+    // РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ
+    Item(const std::string& id, const std::string& name, const std::string& description,
+         ItemType type, ItemRarity rarity = ItemRarity::COMMON, int value = 0, int weight = 1);
+    
+    // Р’РёСЂС‚СѓР°Р»СЊРЅС‹Р№ РґРµСЃС‚СЂСѓРєС‚РѕСЂ
+    virtual ~Item() = default;
+    
+    // Р“РµС‚С‚РµСЂС‹
+    const std::string& getId() const;
+    const std::string& getName() const;
+    const std::string& getDescription() const;
+    ItemType getType() const;
+    ItemRarity getRarity() const;
+    int getValue() const;
+    int getWeight() const;
+    
+    // РЎРµС‚С‚РµСЂС‹
+    void setName(const std::string& name);
+    void setDescription(const std::string& description);
+    void setType(ItemType type);
+    void setRarity(ItemRarity rarity);
+    void setValue(int value);
+    void setWeight(int weight);
+    
+    // Р’РёСЂС‚СѓР°Р»СЊРЅС‹Рµ РјРµС‚РѕРґС‹
+    virtual void use(class Entity* user);
+    virtual std::string getTooltip() const;
+    virtual std::unique_ptr<Item> clone() const;
+    
+    // Р—Р°РїСЂРµС‚ РєРѕРїРёСЂРѕРІР°РЅРёСЏ
+    Item(const Item&) = delete;
+    Item& operator=(const Item&) = delete;
+};
+
+#endif // ITEM_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Optimizations\SpatialPartition.h ===
+// src/Optimizations/SpatialPartition.h
+#ifndef SPATIALPARTITION_H
+#define SPATIALPARTITION_H
+
+#include <vector>
+#include <memory>
+#include <unordered_map>
+#include <SFML/System/Vector2.hpp>
+
+// Forward declaration
+class Entity;
+
+// РџСЂРѕСЃС‚Р°СЏ СЂРµР°Р»РёР·Р°С†РёСЏ Spatial Hashing Grid
+class SpatialPartition {
+private:
+    struct GridCell {
+        std::vector<std::shared_ptr<Entity>> entities;
+    };
+
+    float cellSize;
+    int gridWidth, gridHeight;
+    // РСЃРїРѕР»СЊР·СѓРµРј С…СЌС€-РєР°СЂС‚Сѓ РґР»СЏ С…СЂР°РЅРµРЅРёСЏ РЅРµРїСѓСЃС‚С‹С… СЏС‡РµРµРє
+    std::unordered_map<int, GridCell> grid;
+
+    // РҐСЌС€-С„СѓРЅРєС†РёСЏ РґР»СЏ РєРѕРѕСЂРґРёРЅР°С‚ СЏС‡РµР№РєРё (x, y)
+    int hash(int x, int y) const;
+
+public:
+    SpatialPartition(float cellSize, int gridWidth, int gridHeight);
+    ~SpatialPartition() = default;
+
+    // Р”РѕР±Р°РІР»РµРЅРёРµ/СѓРґР°Р»РµРЅРёРµ СЃСѓС‰РЅРѕСЃС‚РµР№
+    void addEntity(const std::shared_ptr<Entity>& entity, int x, int y);
+    void removeEntity(const std::shared_ptr<Entity>& entity, int x, int y);
+    void updateEntity(const std::shared_ptr<Entity>& entity, int oldX, int oldY, int newX, int newY);
+
+    // РџРѕРёСЃРє СЃРѕСЃРµРґРµР№
+    std::vector<std::shared_ptr<Entity>> getNearbyEntities(int x, int y) const;
+
+    // Р—Р°РїСЂРµС‚ РєРѕРїРёСЂРѕРІР°РЅРёСЏ
+    SpatialPartition(const SpatialPartition&) = delete;
+    SpatialPartition& operator=(const SpatialPartition&) = delete;
+};
+
+#endif // SPATIALPARTITION_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Quests\FetchQuest.h ===
+// Quests/FetchQuest.h
+#ifndef FETCHQUEST_H
+#define FETCHQUEST_H
+
+#include "Quest.h"
+#include <string>
+#include <memory>
+
+// Forward declarations
+class Item;
+class Entity;
+
+class FetchQuest : public Quest {
+private:
+    std::shared_ptr<Item> requiredItem;
+    int requiredQuantity;
+    int currentQuantity;
+
+public:
+    // Конструктор
+    FetchQuest(const std::string& questId, const std::string& title,
+        const std::string& description, std::shared_ptr<Item> requiredItem,
+        int requiredQuantity);
+
+    // Реализация виртуальных методов
+    bool checkCompletionConditions(Entity* player) override;
+    void complete(Entity* player) override;
+    std::string getProgressString() const override;
+
+    // Геттеры
+    std::shared_ptr<Item> getRequiredItem() const;
+    int getRequiredQuantity() const;
+    int getCurrentQuantity() const;
+
+    // Сеттеры
+    void setCurrentQuantity(int quantity);
+};
+
+#endif // FETCHQUEST_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Quests\Quest.h ===
+// Quests/Quest.h
+#ifndef QUEST_H
+#define QUEST_H
+
+#include <string>
+#include <memory>
+
+// Forward declarations
+class Entity;
+
+enum class QuestType {
+    FETCH,
+    KILL,
+    DELIVERY,
+    EXPLORATION
+};
+
+class Quest {
+protected:
+    std::string questId;
+    std::string title;
+    std::string description;
+    bool completed;
+    QuestType type;
+
+public:
+    // Конструктор
+    Quest(const std::string& questId, const std::string& title,
+        const std::string& description, QuestType type);
+
+    // Виртуальный деструктор
+    virtual ~Quest() = default;
+
+    // Геттеры
+    const std::string& getQuestId() const;
+    const std::string& getTitle() const;
+    const std::string& getDescription() const;
+    bool isCompleted() const;
+    QuestType getType() const;
+
+    // Сеттеры
+    void setTitle(const std::string& title);
+    void setDescription(const std::string& description);
+    void setCompleted(bool completed);
+
+    // Виртуальные методы для наследников
+    virtual bool checkCompletionConditions(Entity* player) = 0;
+    virtual void complete(Entity* player) = 0;
+    virtual std::string getProgressString() const = 0;
+
+    // Запрет копирования
+    Quest(const Quest&) = delete;
+    Quest& operator=(const Quest&) = delete;
+};
+
+#endif // QUEST_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Quests\QuestTypes.h ===
+// Quests/QuestTypes.h
+
+#ifndef QUESTTYPES_H
+#define QUESTTYPES_H
+
+// Этот файл теперь пустой, так как все типы перенесены в Quest.h
+// Оставляем для совместимости, если где-то подключается
+
+#endif // QUESTTYPES_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Systems\AbilitySystem.h ===
+// Systems/AbilitySystem.h
+
+#ifndef ABILITYSYSTEM_H
+#define ABILITYSYSTEM_H
+
+#include <string>
+#include <vector>
+#include <memory>
+#include <unordered_map>
+
+// Forward declarations
+class Entity;
+
+enum class AbilityType {
+    HEAL,
+    DAMAGE,
+    BUFF,
+    DEBUFF,
+    SUMMON
+};
+
+struct Ability {
+    std::string id;
+    std::string name;
+    std::string description;
+    AbilityType type;
+    int manaCost;
+    int cooldown;
+    int currentCooldown;
+    bool isUnlocked;
+    Ability() : type(AbilityType::HEAL), manaCost(0), cooldown(0), currentCooldown(0), isUnlocked(false) {}
+    Ability(const std::string& id, const std::string& name, const std::string& description,
+        AbilityType type, int manaCost, int cooldown)
+        : id(id), name(name), description(description), type(type),
+        manaCost(manaCost), cooldown(cooldown), currentCooldown(0), isUnlocked(true) {
+    }
+};
+
+class AbilitySystem {
+private:
+    std::vector<Ability> abilities;
+    std::unordered_map<std::string, int> abilityLevels;
+    int totalMana;
+    int currentMana;
+public:
+    // Конструктор
+    AbilitySystem(int maxMana = 100);
+    // Деструктор
+    ~AbilitySystem() = default;
+    // Управление способностями
+    void addAbility(const Ability& ability);
+    void removeAbility(const std::string& abilityId);
+    Ability* findAbility(const std::string& abilityId);
+    const std::vector<Ability>& getAbilities() const;
+    // Использование способностей
+    bool canUseAbility(const std::string& abilityId) const;
+    bool useAbility(const std::string& abilityId, Entity* caster, Entity* target = nullptr);
+    // Управление маной
+    int getCurrentMana() const;
+    int getTotalMana() const;
+    void restoreMana(int amount);
+    void consumeMana(int amount);
+    // Уровни способностей
+    int getAbilityLevel(const std::string& abilityId) const;
+    void increaseAbilityLevel(const std::string& abilityId);
+    // Обновление системы
+    void update(float deltaTime);
+    // Запрет копирования
+    AbilitySystem(const AbilitySystem&) = delete;
+    AbilitySystem& operator=(const AbilitySystem&) = delete;
+};
+#endif // ABILITYSYSTEM_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Systems\CombatSystem.h ===
+// Systems/CombatSystem.h
+#ifndef COMBATSYSTEM_H
+#define COMBATSYSTEM_H
+
+#include <vector>
+#include <memory>
+#include <string>
+
+// Forward declarations
+class Entity;
+class CombatEvent;
+
+class CombatSystem {
+private:
+    std::vector<std::shared_ptr<CombatEvent>> combatEvents;
+
+public:
+    // Конструктор/деструктор
+    CombatSystem();
+    ~CombatSystem() = default;
+
+    // Методы боя
+    void initiateCombat(std::shared_ptr<Entity> attacker, std::shared_ptr<Entity> defender);
+    void processCombatRound();
+    bool isCombatActive() const;
+    void update(float deltaTime); // Добавлено объявление
+
+    // Управление событиями боя
+    void addCombatEvent(std::shared_ptr<CombatEvent> event);
+    void removeCombatEvent(const std::shared_ptr<CombatEvent>& event);
+    const std::vector<std::shared_ptr<CombatEvent>>& getCombatEvents() const;
+
+    // Статус боя
+    void displayCombatStatus() const;
+
+    // Запрет копирования
+    CombatSystem(const CombatSystem&) = delete;
+    CombatSystem& operator=(const CombatSystem&) = delete;
+};
+
+#endif // COMBATSYSTEM_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Systems\DecisionSystem.h ===
+// Systems/DecisionSystem.h
+#ifndef DECISIONSYSTEM_H
+#define DECISIONSYSTEM_H
+
+#include <vector>
+#include <memory>
+#include <string>
+
+// Forward declarations
+
+class Decision;
+class Entity;
+class Event;
+
+class DecisionSystem {
+private:
+    std::vector<std::shared_ptr<Decision>> availableDecisions;
+
+public:
+    // Конструктор/деструктор
+    DecisionSystem();
+    ~DecisionSystem() = default;
+
+    // Управление решениями
+    void addDecision(std::shared_ptr<Decision> decision);
+    void removeDecision(const std::shared_ptr<Decision>& decision);
+    std::shared_ptr<Decision> findDecisionById(const std::string& id) const;
+    const std::vector<std::shared_ptr<Decision>>& getAvailableDecisions() const;
+
+    // Методы системы
+    void presentDecisions(Entity* decisionMaker) const;
+    void executeDecision(std::shared_ptr<Decision> decision, Entity* decisionMaker);
+
+    // Запрет копирования
+    DecisionSystem(const DecisionSystem&) = delete;
+    DecisionSystem& operator=(const DecisionSystem&) = delete;
+};
+
+#endif // DECISIONSYSTEM_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Systems\QuestSystem.h ===
+// Systems/QuestSystem.h
+#ifndef QUESTSYSTEM_H
+#define QUESTSYSTEM_H
+
+#include <vector>
+#include <memory>
+#include <string>
+#include "Quests/Quest.h"
+
+class Entity;
+
+class QuestSystem {
+private:
+    std::vector<std::shared_ptr<Quest>> activeQuests;
+    std::vector<std::shared_ptr<Quest>> completedQuests;
+
+public:
+    QuestSystem();
+    ~QuestSystem() = default;
+
+    void addQuest(std::shared_ptr<Quest> quest);
+    void removeQuest(const std::shared_ptr<Quest>& quest);
+    bool isQuestActive(const std::shared_ptr<Quest>& quest) const;
+    const std::vector<std::shared_ptr<Quest>>& getActiveQuests() const;
+
+    void completeQuest(std::shared_ptr<Quest> quest, Entity* player);
+    const std::vector<std::shared_ptr<Quest>>& getCompletedQuests() const;
+
+    std::shared_ptr<Quest> findQuestById(const std::string& id) const;
+    std::vector<std::shared_ptr<Quest>> findQuestsByType(QuestType type) const;
+
+    void updateQuests(Entity* player);
+
+    QuestSystem(const QuestSystem&) = delete;
+    QuestSystem& operator=(const QuestSystem&) = delete;
+};
+
+#endif // QUESTSYSTEM_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Systems\RelationshipSystem.h ===
+// Systems/RelationshipSystem.h
+#ifndef RELATIONSHIPSYSTEM_H
+#define RELATIONSHIPSYSTEM_H
+
+#include <string>
+#include <unordered_map>
+#include <memory>
+#include <vector>
+
+// Forward declarations
+class Entity;
+
+enum class RelationshipType {
+    NEUTRAL,
+    FRIENDLY,
+    HOSTILE,
+    ALLY,
+    ENEMY
+};
+
+struct Relationship {
+    std::string entityId;
+    int value; // От -100 (враждебность) до 100 (дружелюбие)
+    RelationshipType type;
+
+    Relationship() : value(0), type(RelationshipType::NEUTRAL) {}
+
+    Relationship(const std::string& entityId, int value = 0)
+        : entityId(entityId), value(value) {
+        updateType();
+    }
+
+    void updateType() {
+        if (value >= 70) {
+            type = RelationshipType::ALLY;
+        }
+        else if (value >= 30) {
+            type = RelationshipType::FRIENDLY;
+        }
+        else if (value <= -70) {
+            type = RelationshipType::ENEMY;
+        }
+        else if (value <= -30) {
+            type = RelationshipType::HOSTILE;
+        }
+        else {
+            type = RelationshipType::NEUTRAL;
+        }
+    }
+};
+
+class RelationshipSystem {
+private:
+    // Карта отношений: entityId -> карта отношений с другими entity
+    std::unordered_map<std::string, std::unordered_map<std::string, Relationship>> relationships;
+
+public:
+    // Конструктор/деструктор
+    RelationshipSystem();
+    ~RelationshipSystem() = default;
+
+    // Управление отношениями
+    void setRelationship(const std::string& entityId1, const std::string& entityId2, int value);
+    int getRelationshipValue(const std::string& entityId1, const std::string& entityId2) const;
+    RelationshipType getRelationshipType(const std::string& entityId1, const std::string& entityId2) const;
+
+    // Модификация отношений
+    void modifyRelationship(const std::string& entityId1, const std::string& entityId2, int delta);
+    void improveRelationship(const std::string& entityId1, const std::string& entityId2, int amount);
+    void worsenRelationship(const std::string& entityId1, const std::string& entityId2, int amount);
+
+    // Получение информации
+    const std::unordered_map<std::string, Relationship>* getEntityRelationships(const std::string& entityId) const;
+    std::vector<std::string> getRelatedEntities(const std::string& entityId) const;
+
+    // Утилиты
+    void removeEntity(const std::string& entityId);
+    void clearRelationships();
+    bool hasRelationship(const std::string& entityId1, const std::string& entityId2) const;
+
+    // Запрет копирования
+    RelationshipSystem(const RelationshipSystem&) = delete;
+    RelationshipSystem& operator=(const RelationshipSystem&) = delete;
+};
+
+#endif // RELATIONSHIPSYSTEM_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Systems\SaveManager.h ===
+// Systems/SaveManager.h
+#ifndef SAVEMANAGER_H
+#define SAVEMANAGER_H
+
+#include <string>
+#include <vector>
+#include <memory>
+#include <unordered_map>
+
+// Forward declarations
+class Entity;
+class GameWorld;
+class Quest;
+
+// Структуры для сохранения данных
+struct PlayerSaveData {
+    std::string name;
+    int health;
+    int maxHealth;
+    int level;
+    int experience;
+    std::vector<std::string> inventoryItems; // Только ID предметов
+    std::vector<std::string> activeQuests;   // Только ID квестов
+    std::string currentLocation;
+
+    PlayerSaveData() : health(0), maxHealth(0), level(0), experience(0) {}
+};
+
+struct WorldSaveData {
+    std::string worldName;
+    std::vector<std::string> locationNames;
+    int currentLocationIndex;
+
+    WorldSaveData() : currentLocationIndex(0) {}
+};
+
+class SaveManager {
+private:
+    std::string saveDirectory;
+    int saveVersion;
+
+public:
+    // Конструктор
+    explicit SaveManager(const std::string& saveDir = "./saves/");
+
+    // Деструктор
+    ~SaveManager() = default;
+
+    // Методы сохранения
+    bool saveGame(const Entity* player, const GameWorld* world, const std::string& filename);
+    bool loadGame(Entity* player, GameWorld* world, const std::string& filename);
+
+    // Методы работы с файлами
+    bool saveToFile(const std::string& filename, const std::string& data) const;
+    bool loadFromFile(const std::string& filename, std::string& data) const;
+
+    // Методы сериализации
+    std::string serializePlayerData(const Entity* player) const;
+    bool deserializePlayerData(Entity* player, const std::string& data) const;
+
+    std::string serializeWorldData(const GameWorld* world) const;
+    bool deserializeWorldData(GameWorld* world, const std::string& data) const;
+
+    // Утилиты
+    std::string getFullSavePath(const std::string& filename) const;
+    bool createSaveDirectory() const;
+    bool isValidSaveFile(const std::string& filename) const;
+
+    // Запрет копирования
+    SaveManager(const SaveManager&) = delete;
+    SaveManager& operator=(const SaveManager&) = delete;
+};
+
+#endif // SAVEMANAGER_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Systems\SkillSystem.h ===
+// Systems/SkillSystem.h
+#ifndef SKILLSYSTEM_H
+#define SKILLSYSTEM_H
+
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <memory>
+
+// Forward declarations
+class Entity;
+
+enum class SkillCategory {
+    COMBAT,
+    MAGIC,
+    CRAFTING,
+    SOCIAL,
+    SURVIVAL
+};
+
+struct Skill {
+    std::string id;
+    std::string name;
+    std::string description;
+    SkillCategory category;
+    int level;
+    int experience;
+    int experienceToNextLevel;
+    bool isUnlocked;
+
+    Skill() : category(SkillCategory::COMBAT), level(1), experience(0),
+        experienceToNextLevel(100), isUnlocked(false) {
+    }
+
+    Skill(const std::string& id, const std::string& name, const std::string& description,
+        SkillCategory category, int startingLevel = 1)
+        : id(id), name(name), description(description), category(category),
+        level(startingLevel), experience(0), experienceToNextLevel(startingLevel * 100),
+        isUnlocked(true) {
+    }
+};
+
+class SkillSystem {
+private:
+    std::unordered_map<std::string, Skill> skills;
+    int totalSkillPoints;
+    int availableSkillPoints;
+
+public:
+    // Конструктор
+    SkillSystem(int initialSkillPoints = 0);
+
+    // Деструктор
+    ~SkillSystem() = default;
+
+    // Управление навыками
+    void addSkill(const Skill& skill);
+    void removeSkill(const std::string& skillId);
+    Skill* findSkill(const std::string& skillId);
+    const std::unordered_map<std::string, Skill>& getSkills() const;
+
+    // Получение навыков по категории
+    std::vector<Skill*> getSkillsByCategory(SkillCategory category);
+    std::vector<const Skill*> getSkillsByCategory(SkillCategory category) const;
+
+    // Прокачка навыков
+    bool canUpgradeSkill(const std::string& skillId) const;
+    bool upgradeSkill(const std::string& skillId);
+    void gainSkillExperience(const std::string& skillId, int experience);
+
+    // Управление очками навыков
+    int getTotalSkillPoints() const;
+    int getAvailableSkillPoints() const;
+    void addSkillPoints(int points);
+    bool spendSkillPoints(int points);
+
+    // Автоматическая прокачка
+    void checkAutoLevelUp();
+
+    // Получение информации
+    int getSkillLevel(const std::string& skillId) const;
+    int getSkillExperience(const std::string& skillId) const;
+    bool isSkillUnlocked(const std::string& skillId) const;
+
+    // Запрет копирования
+    SkillSystem(const SkillSystem&) = delete;
+    SkillSystem& operator=(const SkillSystem&) = delete;
+};
+
+#endif // SKILLSYSTEM_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Types\Types.h ===
+// Types/Types.h
+#ifndef TYPES_H
+#define TYPES_H
+#include <string>
+#include <vector>
+
+enum class TileType {
+    GROUND,     // Основание (земля)
+    WATER,      // Основание (непроходимое)
+    DESERT,     // Основание (пустыня)
+    // --- НОВЫЕ ТИПЫ ---
+    GRASS,      // Основание (лес, равнина)
+    SAND,       // Основание (пляж, пустыня)
+    SNOW,       // Основание (тайга, тундра)
+    ROCK,       // Основание (горы)
+    // ---
+    // - ОБЪЕКТЫ (наложенные поверх основания GROUND) -
+    TREE,       // Объект на земле
+    ROAD_SEGMENT, // Объект на земле
+    HOUSE,      // Объект на земле
+    MOUNTAIN,   // Объект на земле (всегда поверх GROUND)
+    BUILDING,   // Объект на земле (всегда поверх GROUND)
+    STONE,      // Объект на земле
+    FLOWER,     // Объект на земле
+    RUIN,       // Объект на земле
+    // - ДЕКОРАЦИИ (не влияют на проходимость, только на GROUND) -
+    GRASS_PATCH, // Декорация на земле
+    // технические
+    VOID,
+    SPAWN
+};
+
+// Константы путей к спрайтам тайлов (для GraphicsSystem)
+namespace TileSpritePaths {
+    constexpr const char* GROUND = "assets/textures/tiles/base/ground.png";
+    constexpr const char* WATER = "assets/textures/tiles/base/water.png";
+    constexpr const char* DESERT = "assets/textures/tiles/base/desert.png";
+    constexpr const char* ROAD = "assets/textures/tiles/object/road_segment.png";
+    constexpr const char* BUILDING = "assets/textures/tiles/base/building.png";
+    constexpr const char* MOUNTAIN = "assets/textures/tiles/base/mountain.png";
+    constexpr const char* VOID = "assets/textures/tiles/base/void.png";
+    constexpr const char* TREE = "assets/textures/tiles/object/tree.png";
+    constexpr const char* GRASS_PATCH = "assets/textures/tiles/decor/grass_patch.png";
+    constexpr const char* HOUSE = "assets/textures/tiles/object/house.png";
+    constexpr const char* STONE = "assets/textures/tiles/decor/stone.png";
+    constexpr const char* FLOWER = "assets/textures/tiles/decor/flower.png";
+    constexpr const char* RUIN = "assets/textures/tiles/decor/ruin.png";
+    constexpr const char* SPAWN = "assets/textures/tiles/base/spawn.png";
+    // Добавляем структуру для использования в AdvancedGraphicsSystem.cpp
+    static const std::vector<std::pair<TileType, const char*>> tilePaths = {
+        {TileType::GROUND, GROUND},
+        {TileType::WATER, WATER},
+        {TileType::DESERT, DESERT},
+        {TileType::ROAD_SEGMENT, ROAD},
+        {TileType::BUILDING, BUILDING},
+        {TileType::MOUNTAIN, MOUNTAIN},
+        {TileType::VOID, VOID},
+        {TileType::TREE, TREE},
+        {TileType::GRASS_PATCH, GRASS_PATCH},
+        {TileType::HOUSE, HOUSE},
+        {TileType::STONE, STONE},
+        {TileType::FLOWER, FLOWER},
+        {TileType::RUIN, RUIN},
+        {TileType::SPAWN, SPAWN}
+    };
+}
+
+enum class EntityType {
+    PLAYER,
+    NPC,
+    ENEMY,
+    VILLAGER
+};
+
+enum class EventType {
+    COMBAT,
+    DIALOGUE,
+    QUEST,
+    STORY,
+    PEACEFUL_ACTIVITY
+};
+
+enum class GameStateType {
+    MENU,
+    PLAY,
+    PAUSE,
+    GAME_OVER,
+    SETTINGS
+};
+
+enum class QuestStatus {
+    NOT_STARTED,
+    IN_PROGRESS,
+    COMPLETED,
+    FAILED
+};
+
+struct Position {
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+    Position() = default;
+    Position(float x, float y, float z) : x(x), y(y), z(z) {}
+};
+
+struct Stats {
+    int strength = 10;
+    int agility = 10;
+    int intelligence = 10;
+    int constitution = 10;
+    Stats() = default;
+    Stats(int str, int agi, int intel, int con)
+        : strength(str), agility(agi), intelligence(intel), constitution(con) {
+    }
+};
+
+namespace Constants {
+    constexpr int MAX_INVENTORY_SIZE = 20;
+    constexpr int MAX_LEVEL = 50;
+    constexpr float BASE_EXPERIENCE_MULTIPLIER = 1.0f;
+    constexpr int STARTING_HEALTH = 100;
+}
+
+namespace std {
+    template<>
+    struct hash<TileType> {
+        size_t operator()(const TileType& t) const noexcept {
+            return static_cast<size_t>(t);
+        }
+    };
+}
+
+#endif // TYPES_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\UI\DialogSystem.h ===
+// src/UI/DialogSystem.h
+#ifndef DIALOGSYSTEM_H
+#define DIALOGSYSTEM_H
+#include <SFML/Graphics.hpp>
+#include <string>
+#include <vector>
+#include <memory>
+class Player;
+class Entity;
+struct DialogueOption {
+    std::string text;
+    std::string nextDialogueId;
+    bool available = true;
+    sf::Color textColor = sf::Color::White;
+};
+struct DialogueNode {
+    std::string id;
+    std::string text;
+    std::string speakerName;
+    std::string portraitPath; // Путь к портрету говорящего
+    std::vector<DialogueOption> options;
+    bool isEnding = false;
+};
+class DialogSystem {
+private:
+    sf::RenderWindow& window;
+    sf::Font font;
+    sf::RectangleShape dialogBox;
+    sf::Text dialogText;
+    sf::Text speakerText;
+    sf::Texture speakerPortrait;
+    sf::Sprite portraitSprite;
+    std::vector<DialogueNode> dialogTree;
+    size_t currentNodeIndex = 0;
+    bool active = false;
+    Player* player = nullptr;
+    Entity* npc = nullptr;
+    void loadPortraitForNode();
+    void updateOptionsDisplay();
+    void confirmSelection();
+    const DialogueNode* findDialogue(const std::string& id) const;
+    const DialogueNode* getCurrentDialogue() const;
+public:
+    explicit DialogSystem(sf::RenderWindow& window, sf::Font& font);
+    ~DialogSystem() = default;
+    bool initialize();
+    bool startDialogue(const std::string& dialogueId, Player* player, Entity* npc);
+    void endDialogue();
+    bool isInDialogue() const; // <-- Это правильный метод!
+    bool isActive() const { return isInDialogue(); }
+    void update(float deltaTime);
+    void draw(sf::RenderTarget& target); // Исправлено: принимает sf::RenderTarget&, а не void
+    void handleEvent(const sf::Event& event);
+    // Запрет копирования
+    DialogSystem(const DialogSystem&) = delete;
+    DialogSystem& operator=(const DialogSystem&) = delete;
+};
+#endif // DIALOGSYSTEM_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\UI\InventoryUI.h ===
+// src/UI/InventoryUI.h
+#ifndef INVENTORYUI_H
+#define INVENTORYUI_H
+
+#include <SFML/Graphics.hpp>
+#include <memory>
+#include <vector>
+
+// Forward declarations
+class Entity; // Р”Р»СЏ РїРѕР»СѓС‡РµРЅРёСЏ РёРЅРІРµРЅС‚Р°СЂСЏ
+class Item;  // Р”Р»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ РїСЂРµРґРјРµС‚РѕРІ
+
+class InventoryUI {
+private:
+    bool visible;
+    sf::Font font;
+    // --- Р­Р»РµРјРµРЅС‚С‹ UI ---
+    sf::RectangleShape background;
+    std::vector<sf::Text> itemTexts; // РўРµРєСЃС‚С‹ РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ РїСЂРµРґРјРµС‚РѕРІ
+    sf::Text titleText; // Р—Р°РіРѕР»РѕРІРѕРє "РРЅРІРµРЅС‚Р°СЂСЊ"
+    // --- Р’РЅСѓС‚СЂРµРЅРЅРёРµ РјРµС‚РѕРґС‹ ---
+    void updateUI(const Entity* player); // РћР±РЅРѕРІР»СЏРµС‚ С‚РµРєСЃС‚С‹ РЅР° РѕСЃРЅРѕРІРµ РёРЅРІРµРЅС‚Р°СЂСЏ РёРіСЂРѕРєР°
+public:
+    explicit InventoryUI(const sf::Font& font); // РџСЂРёРЅРёРјР°РµРј С€СЂРёС„С‚
+    ~InventoryUI() = default;
+    // --- РЈРїСЂР°РІР»РµРЅРёРµ РІРёРґРёРјРѕСЃС‚СЊСЋ ---
+    void setVisible(bool isVisible);
+    bool isVisible() const;
+    // --- РњРµС‚РѕРґС‹ С†РёРєР»Р° ---
+    void update(float deltaTime, const Entity* player); // РџРµСЂРµРґР°РµРј РёРіСЂРѕРєР° РґР»СЏ РѕР±РЅРѕРІР»РµРЅРёСЏ
+    void draw(sf::RenderTarget& target); // РСЃРїСЂР°РІР»РµРЅРѕ: РїСЂРёРЅРёРјР°РµС‚ sf::RenderTarget&, Р° РЅРµ sf::RenderWindow&
+    void handleEvent(const sf::Event& event);
+    // Р—Р°РїСЂРµС‚ РєРѕРїРёСЂРѕРІР°РЅРёСЏ
+    InventoryUI(const InventoryUI&) = delete;
+    InventoryUI& operator=(const InventoryUI&) = delete;
+};
+
+#endif // INVENTORYUI_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\UI\QuestLogUI.h ===
+// src/UI/QuestLogUI.h
+#ifndef QUESTLOGUI_H
+#define QUESTLOGUI_H
+#include <SFML/Graphics.hpp>
+#include <memory>
+#include <vector>
+// Forward declarations
+class Entity; // Р”Р»СЏ РїРѕР»СѓС‡РµРЅРёСЏ РєРІРµСЃС‚РѕРІ
+class Quest; // Р”Р»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ РєРІРµСЃС‚РѕРІ
+class QuestLogUI {
+private:
+    bool visible;
+    sf::Font font;
+    // --- Р­Р»РµРјРµРЅС‚С‹ UI ---
+    sf::RectangleShape background;
+    std::vector<sf::Text> questTexts; // РўРµРєСЃС‚С‹ РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ РєРІРµСЃС‚РѕРІ
+    sf::Text titleText; // Р—Р°РіРѕР»РѕРІРѕРє "Р–СѓСЂРЅР°Р» РєРІРµСЃС‚РѕРІ"
+    // --- Р’РЅСѓС‚СЂРµРЅРЅРёРµ РјРµС‚РѕРґС‹ ---
+    void updateUI(const Entity* player); // РћР±РЅРѕРІР»СЏРµС‚ С‚РµРєСЃС‚С‹ РЅР° РѕСЃРЅРѕРІРµ Р°РєС‚РёРІРЅС‹С… РєРІРµСЃС‚РѕРІ РёРіСЂРѕРєР°
+public:
+    explicit QuestLogUI(const sf::Font& font); // РџСЂРёРЅРёРјР°РµРј С€СЂРёС„С‚
+    ~QuestLogUI() = default;
+    // --- РЈРїСЂР°РІР»РµРЅРёРµ РІРёРґРёРјРѕСЃС‚СЊСЋ ---
+    void setVisible(bool isVisible);
+    bool isVisible() const;
+    // --- РњРµС‚РѕРґС‹ С†РёРєР»Р° ---
+    void update(float deltaTime, const Entity* player); // РџРµСЂРµРґР°РµРј РёРіСЂРѕРєР° РґР»СЏ РѕР±РЅРѕРІР»РµРЅРёСЏ
+    void draw(sf::RenderTarget& target); // РСЃРїСЂР°РІР»РµРЅРѕ: РїСЂРёРЅРёРјР°РµС‚ sf::RenderTarget&, Р° РЅРµ sf::RenderWindow&
+    void handleEvent(const sf::Event& event);
+    // Р—Р°РїСЂРµС‚ РєРѕРїРёСЂРѕРІР°РЅРёСЏ
+    QuestLogUI(const QuestLogUI&) = delete;
+    QuestLogUI& operator=(const QuestLogUI&) = delete;
+};
+#endif // QUESTLOGUI_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\UI\SkillTreeUI.h ===
+// src/UI/SkillTreeUI.h
+#ifndef SKILLTREEUI_H
+#define SKILLTREEUI_H
+#include <SFML/Graphics.hpp>
+#include <memory>
+#include <vector>
+#include <string>
+#include <utility>
+// Forward declarations
+class Entity; // Р”Р»СЏ РїРѕР»СѓС‡РµРЅРёСЏ РЅР°РІС‹РєРѕРІ/СѓСЂРѕРІРЅСЏ
+class Skill;  // РџСЂРµРґРїРѕР»Р°РіР°РµРјР°СЏ СЃС‚СЂСѓРєС‚СѓСЂР° РЅР°РІС‹РєР°
+struct SkillNode {
+    std::string id;
+    std::string name;
+    std::string description;
+    int levelRequired;
+    bool isUnlocked;
+    sf::Vector2f position; // РџРѕР·РёС†РёСЏ РЅР° СЌРєСЂР°РЅРµ
+    std::vector<std::string> dependencies; // ID РЅР°РІС‹РєРѕРІ, РЅРµРѕР±С…РѕРґРёРјС‹С… РґР»СЏ СЂР°Р·Р±Р»РѕРєРёСЂРѕРІРєРё
+};
+class SkillTreeUI {
+private:
+    sf::RenderWindow* window;
+    bool visible;
+    sf::Font font;
+    // --- Р­Р»РµРјРµРЅС‚С‹ UI ---
+    sf::RectangleShape background;
+    std::vector<SkillNode> skillNodes; // Р”Р°РЅРЅС‹Рµ РЅР°РІС‹РєРѕРІ
+    std::vector<sf::CircleShape> nodeShapes; // Р’РёР·СѓР°Р»СЊРЅС‹Рµ РїСЂРµРґСЃС‚Р°РІР»РµРЅРёСЏ РЅР°РІС‹РєРѕРІ
+    std::vector<sf::Text> nodeTexts; // РўРµРєСЃС‚С‹ РґР»СЏ РЅР°Р·РІР°РЅРёР№ РЅР°РІС‹РєРѕРІ
+    sf::Text titleText;
+    sf::Text infoText; // Р”Р»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ РёРЅС„РѕСЂРјР°С†РёРё Рѕ РІС‹Р±СЂР°РЅРЅРѕРј РЅР°РІС‹РєРµ
+    int selectedNodeIndex; // РРЅРґРµРєСЃ РІС‹Р±СЂР°РЅРЅРѕРіРѕ РЅР°РІС‹РєР° (-1 РµСЃР»Рё РЅРё РѕРґРёРЅ)
+    // --- Р’РЅСѓС‚СЂРµРЅРЅРёРµ РјРµС‚РѕРґС‹ ---
+    void loadSkillData(); // Р—Р°РіСЂСѓР·РєР°/РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РґР°РЅРЅС‹С… РЅР°РІС‹РєРѕРІ (РІСЂРµРјРµРЅРЅРѕ РІРЅСѓС‚СЂРё)
+    void updateUIPositions(); // РћР±РЅРѕРІР»РµРЅРёРµ РїРѕР·РёС†РёР№ РІРёР·СѓР°Р»СЊРЅС‹С… СЌР»РµРјРµРЅС‚РѕРІ
+    void updateInfoText(); // РћР±РЅРѕРІР»РµРЅРёРµ С‚РµРєСЃС‚Р° РёРЅС„РѕСЂРјР°С†РёРё Рѕ РЅР°РІС‹РєРµ
+public:
+    explicit SkillTreeUI(const sf::Font& font, sf::RenderWindow* window);
+    ~SkillTreeUI() = default;
+    // --- РЈРїСЂР°РІР»РµРЅРёРµ РІРёРґРёРјРѕСЃС‚СЊСЋ ---
+    void setVisible(bool isVisible);
+    bool isVisible() const;
+    // --- РњРµС‚РѕРґС‹ С†РёРєР»Р° ---
+    void update(float deltaTime, const Entity* player);
+    void draw(sf::RenderTarget& target); // РСЃРїСЂР°РІР»РµРЅРѕ: РїСЂРёРЅРёРјР°РµС‚ sf::RenderTarget&, Р° РЅРµ sf::RenderWindow&
+    void handleEvent(const sf::Event& event);
+    // Р—Р°РїСЂРµС‚ РєРѕРїРёСЂРѕРІР°РЅРёСЏ
+    SkillTreeUI(const SkillTreeUI&) = delete;
+    SkillTreeUI& operator=(const SkillTreeUI&) = delete;
+};
+#endif // SKILLTREEUI_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\UI\UIManager.h ===
+// UI/UIManager.h
+#ifndef UIMANAGER_H
+#define UIMANAGER_H
+
+#include <string>
+#include <vector>
+#include <memory>
+
+// Forward declarations
+class Entity;
+class Quest;
+class Inventory;
+
+class UIManager {
+private:
+    bool initialized;
+
+public:
+    // Конструктор/деструктор
+    UIManager();
+    ~UIManager() = default;
+
+    // Инициализация и очистка
+    bool initialize();
+    void shutdown();
+
+    // Методы отображения
+    void displayPlayerStats(const Entity* player) const;
+    void displayInventory(const Inventory* inventory) const;
+    void displayQuests(const std::vector<std::shared_ptr<Quest>>& quests) const;
+    void displayLocationInfo(const std::string& locationName, const std::string& description) const;
+
+    // Методы ввода
+    int getChoice(int min, int max) const;
+    std::string getStringInput(const std::string& prompt) const;
+
+    // Методы сообщений
+    void showMessage(const std::string& message) const;
+    void showError(const std::string& error) const;
+    void showCombatMessage(const std::string& attacker, const std::string& defender, int damage) const;
+
+    // Статус
+    bool isInitialized() const;
+
+    // Запрет копирования
+    UIManager(const UIManager&) = delete;
+    UIManager& operator=(const UIManager&) = delete;
+};
+
+#endif // UIMANAGER_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\Utils\PerlinNoise.h ===
+// Utils/PerlinNoise.h
+#pragma once
+#include "World/NoiseGenerator.h"
+#include <memory>
+
+class PerlinNoise {
+private:
+    std::unique_ptr<NoiseGenerator> noiseGen;
+public:
+    explicit PerlinNoise(unsigned int seed = 0)
+        : noiseGen(std::make_unique<NoiseGenerator>(seed)) {
+    }
+
+    float fractalNoise(float x, float y, int octaves = 4, float persistence = 0.5f, float scale = 1.0f) const {
+        return noiseGen->fractalNoise(x, y, octaves, persistence, scale);
+    }
+
+    unsigned int getSeed() const {
+        return noiseGen->getSeed();
+    }
+};
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\World\AdvancedWorldGenerator.h ===
+// World/AdvancedWorldGenerator.h
+#ifndef ADVANCEDWORLDGENERATOR_H
+#define ADVANCEDWORLDGENERATOR_H
+#include "Utils/PerlinNoise.h"
+#include "World/GameWorld.h"
+#include "World/TileBasedLocation.h"
+#include "World/TileMap.h"
+#include "World/BiomeSystem.h"
+#include <future> 
+#include <memory>
+#include <random>
+#include <string>
+#include <thread> 
+#include <vector> 
+
+#include <iostream>
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+
+class AdvancedWorldGenerator {
+public:
+    struct GenerationParams {
+        // === Основные параметры мира ===
+        int worldSize = 512;
+        int regionSize = 64;
+        float waterLevel = 0.4f;
+
+        // === Параметры высоты (базовый ландшафт) ===
+        float baseScale = 0.005f;      // Масштаб базового шума (меньше = крупнее детали)
+        int baseOctaves = 5;           // Количество октав для высоты
+        float basePersistence = 0.5f;  // Устойчивость октав (меньше = плавнее)
+
+        // === Параметры гор ===
+        float mountainHeight = 0.7f;
+        float mountainScale = 0.02f;
+        int mountainOctaves = 4;
+        float mountainPersistence = 0.5f;
+
+        // === Параметры лесов ===
+        float forestThreshold = 0.6f;
+        float forestScale = 0.05f;
+        int forestOctaves = 3;
+        float forestPersistence = 0.6f;
+
+        // === Параметры рек ===
+        int numRivers = 5;
+        float riverCurvature = 0.5f;
+    };
+    void setParams(const GenerationParams& newParams);
+    const GenerationParams& getParams() const;
+    // Добавлено: методы для настройки отдельных параметров
+    void setWorldSize(int size) { params.worldSize = size; }
+    void setRegionSize(int size) { params.regionSize = size; }
+    void setWaterLevel(float level) { params.waterLevel = level; }
+    void setMountainHeight(float height) { params.mountainHeight = height; }
+    void setMountainScale(float scale) { params.mountainScale = scale; }
+    void setMountainOctaves(int octaves) { params.mountainOctaves = octaves; }
+    void setMountainPersistence(float persistence) { params.mountainPersistence = persistence; }
+    void setForestThreshold(float threshold) { params.forestThreshold = threshold; }
+    void setForestScale(float scale) { params.forestScale = scale; }
+    void setForestOctaves(int octaves) { params.forestOctaves = octaves; }
+    void setForestPersistence(float persistence) { params.forestPersistence = persistence; }
+    void setNumRivers(int num) { params.numRivers = num; }
+    void setRiverCurvature(float curvature) { params.riverCurvature = curvature; }
+    // Методы генерации
+    std::unique_ptr<GameWorld> generateWorld(const std::string& worldName);
+private:
+    std::unique_ptr<PerlinNoise> baseNoise;
+    std::unique_ptr<PerlinNoise> mountainNoise;
+    std::unique_ptr<PerlinNoise> forestNoise;
+    GenerationParams params;
+    std::mt19937 gen;
+    BiomeSystem biomeSystem;
+
+    // Вспомогательные методы
+    void generateTerrain(TileBasedLocation* location);
+    void generateMountains(TileBasedLocation* location);
+    void generateRivers(TileBasedLocation* location);
+    void generateForests(TileBasedLocation* location);
+    void generateVillage(TileBasedLocation* location, int villageX, int villageY, int villageSize); 
+public:
+    AdvancedWorldGenerator(unsigned int seed = 0);
+    ~AdvancedWorldGenerator() = default;
+    // Запрет копирования
+    AdvancedWorldGenerator(const AdvancedWorldGenerator&) = delete;
+    AdvancedWorldGenerator& operator=(const AdvancedWorldGenerator&) = delete;
+};
+#endif // ADVANCEDWORLDGENERATOR_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\World\BiomeSystem.h ===
+// World/BiomeSystem.h
+#ifndef BIOMESYSTEM_H
+#define BIOMESYSTEM_H
+
+#include "Types/Types.h"
+#include <vector>
+#include <string>
+
+struct BiomeDefinition {
+    std::string name;
+    TileType baseTile;
+    std::vector<TileType> commonObjects;   // деревья, камни и т.д.
+    std::vector<TileType> rareObjects;     // руины, сокровища
+    float minHeight;
+    float maxHeight;
+    float minMoisture;
+    float maxMoisture;
+    float minTemperature;
+    float maxTemperature;
+};
+
+class BiomeSystem {
+private:
+    std::vector<BiomeDefinition> biomes;
+
+    BiomeDefinition determineBiome(float height, float moisture, float temperature) const;
+
+public:
+    BiomeSystem();
+    void initializeDefaultBiomes();
+    // --- ИСПРАВЛЕНО: убраны x, y ---
+    BiomeDefinition getBiomeAt(float height, float moisture, float temperature) const;
+    const std::vector<BiomeDefinition>& getAllBiomes() const;
+};
+
+#endif // BIOMESYSTEM_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\World\Ecosystem.h ===
+// World/Ecosystem.h
+#pragma once
+#include <memory>
+#include <string>
+#include <vector>
+#include "Entities/Entity.h"
+
+class GameWorld;
+class TileBasedLocation;
+
+struct Species {
+    std::string name;
+    std::string type; // "animal", "plant", "monster"
+    int spawnWeight;
+    std::string preferredBiome;
+};
+
+class Ecosystem {
+private:
+    std::vector<Species> speciesList;
+
+    std::vector<std::shared_ptr<Entity>> generateFlora(const std::string& biome, int count);
+    std::vector<std::shared_ptr<Entity>> generateFauna(const std::string& biome, int count);
+
+public:
+    Ecosystem();
+    void populateLocation(TileBasedLocation* location, const std::string& biomeName);
+    void initializeDefaultSpecies();
+};
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\World\GameWorld.h ===
+// World/GameWorld.h
+#ifndef GAMEWORLD_H
+#define GAMEWORLD_H
+
+#include "Location.h"
+#include <vector>
+#include <memory>
+#include <string>
+#include "Entities/Player.h"
+
+class GameWorld {
+private:
+    std::string worldName;
+    std::vector<std::shared_ptr<Entity>> entities;
+    std::vector<std::unique_ptr<Location>> locations;
+    int currentLocationIndex;
+public:
+    explicit GameWorld(const std::string& worldName);
+    ~GameWorld() = default;
+
+    // РЈРїСЂР°РІР»РµРЅРёРµ СЃСѓС‰РЅРѕСЃС‚СЏРјРё
+    bool addEntity(std::shared_ptr<Entity> entity);
+    bool removeEntity(const std::shared_ptr<Entity>& entity);
+    const std::vector<std::shared_ptr<Entity>>& getEntities() const;
+
+    // РЈРїСЂР°РІР»РµРЅРёРµ Р»РѕРєР°С†РёСЏРјРё
+    void addLocation(std::unique_ptr<Location> location);
+    Location* getCurrentLocation() const;
+    void setCurrentLocation(int locationIndex);
+    bool changeLocation(int locationIndex);
+
+    // Р“РµС‚С‚РµСЂС‹
+    const std::vector<std::unique_ptr<Location>>& getLocations() const;
+    const std::string& getWorldName() const;
+    void setWorldName(const std::string& name);
+    int getCurrentLocationIndex() const;
+
+    // РћР±РЅРѕРІР»РµРЅРёРµ РјРёСЂР°
+    void update(float deltaTime);
+
+    // РџРѕРёСЃРє РёРіСЂРѕРєР°
+    std::shared_ptr<Player> findPlayer() const;
+
+    // Р—Р°РїСЂРµС‚ РєРѕРїРёСЂРѕРІР°РЅРёСЏ
+    GameWorld(const GameWorld&) = delete;
+    GameWorld& operator=(const GameWorld&) = delete;
+};
+
+#endif // GAMEWORLD_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\World\Location.h ===
+// World/Location.h
+#ifndef LOCATION_H
+#define LOCATION_H
+#include <string>
+#include <vector>
+#include <memory>
+#include <algorithm>
+#include "Entities/Player.h" // <-- Добавлено: включаем полное определение Player
+class Location {
+protected:
+    std::string name;
+    std::string description;
+    std::vector<std::shared_ptr<Entity>> entities;
+public:
+    Location(const std::string& name, const std::string& description);
+    virtual ~Location() = default;
+    const std::string& getName() const { return name; }
+    const std::string& getDescription() const { return description; }
+    // --- Виртуальные методы для переопределения в наследниках ---
+    virtual std::shared_ptr<Player> findPlayer() const;
+    virtual std::vector<std::shared_ptr<Entity>> getEntitiesInRange(int centerX, int centerY, int range) const;
+    virtual bool addEntity(std::shared_ptr<Entity> entity);
+    virtual void removeEntity(std::shared_ptr<Entity> entity);
+    virtual void enter() {}
+    virtual void exit() {}
+    virtual void update(float deltaTime) {}
+    // --- Методы для работы с сущностями ---
+    const std::vector<std::shared_ptr<Entity>>& getEntities() const { return entities; }
+    size_t getEntityCount() const { return entities.size(); }
+};
+#endif // LOCATION_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\World\NoiseGenerator.h ===
+// World/NoiseGenerator.h
+#pragma once
+#include <random>
+#include <cmath>
+#include <vector>
+class NoiseGenerator {
+private:
+    std::mt19937 gen;
+    std::uniform_real_distribution<float> dist;
+    unsigned int seedValue; // Добавляем переменную для хранения seed
+    // Увеличиваем размер таблицы градиентов для лучшего качества
+    static const int GRADIENT_TABLE_SIZE = 256;
+    float gradientTable[GRADIENT_TABLE_SIZE * 2]; // x, y градиенты
+    // Хэш-функция для псевдослучайности
+    int hash(int x, int y) const;
+    // Получить градиент по координатам решетки
+    void getGradient(int x, int y, float& gx, float& gy) const;
+    // Функция сглаживания
+    float fade(float t) const;
+    // Линейная интерполяция
+    float lerp(float a, float b, float t) const;
+    // Билинейная интерполяция шума
+    float bilinearInterpolation(float x, float y) const;
+public:
+    // Конструктор, принимающий seed
+    explicit NoiseGenerator(unsigned int seed = 0);
+    // Генерирует значение шума Перлина в точке (x, y)
+    float noise(float x, float y) const;
+    // Генерирует значение шума с_octaves октавами
+    float fractalNoise(float x, float y, int octaves = 4, float persistence = 0.5f, float scale = 1.0f) const;
+
+    // Добавляем метод getSeed
+    unsigned int getSeed() const {
+        return seedValue;
+    }
+};
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\World\TileBasedLocation.h ===
+// World/TileBasedLocation.h
+#ifndef TILEBASEDLOCATION_H
+#define TILEBASEDLOCATION_H
+
+#include <memory>
+#include <string>
+#include <vector>
+#include "Location.h"
+#include "TileMap.h"
+#include "Entities/Entity.h"
+#include "Entities/Player.h"
+#include "Optimizations/SpatialPartition.h"
+
+class TileBasedLocation : public Location {
+private:
+    std::unique_ptr<TileMap> tileMap;
+    std::unique_ptr<SpatialPartition> spatialPartition;
+    // РљР°СЂС‚С‹ РїР°СЂР°РјРµС‚СЂРѕРІ Р»Р°РЅРґС€Р°С„С‚Р°
+    std::vector<std::vector<float>> heightMap;
+    std::vector<std::vector<float>> moistureMap;
+    std::vector<std::vector<float>> temperatureMap;
+
+public:
+    TileBasedLocation(const std::string& name, const std::string& description,
+        int width, int height, int offsetX = 0, int offsetY = 0);
+    ~TileBasedLocation() override = default;
+
+    // Р“РµС‚С‚РµСЂС‹
+    TileMap* getTileMap() const;
+    SpatialPartition* getSpatialPartition() const;
+
+    // РЈРїСЂР°РІР»РµРЅРёРµ РєР°СЂС‚Р°РјРё
+    void setHeightMap(std::vector<std::vector<float>>&& newMap);
+    void setMoistureMap(std::vector<std::vector<float>>&& newMap);
+    void setTemperatureMap(std::vector<std::vector<float>>&& newMap);
+
+    // РљРѕРЅСЃС‚Р°РЅС‚РЅС‹Рµ РіРµС‚С‚РµСЂС‹ РґР»СЏ РєР°СЂС‚
+    const std::vector<std::vector<float>>& getHeightMap() const { return heightMap; }
+    const std::vector<std::vector<float>>& getMoistureMap() const { return moistureMap; }
+    const std::vector<std::vector<float>>& getTemperatureMap() const { return temperatureMap; }
+
+    // РЈРїСЂР°РІР»РµРЅРёРµ СЃСѓС‰РЅРѕСЃС‚СЏРјРё Рё Р»РѕРєР°С†РёРµР№
+    std::pair<int, int> findSpawnPoint() const;
+    std::shared_ptr<Player> findPlayer() const override;
+    std::vector<std::shared_ptr<Entity>> getEntitiesInRange(int centerX, int centerY, int range) const override;
+    std::pair<int, int> findNearbyWalkableTile(int centerX, int centerY, int radius) const;
+    bool addEntity(std::shared_ptr<Entity> entity) override;
+    void removeEntity(std::shared_ptr<Entity> entity) override;
+    void setTileMap(std::unique_ptr<TileMap> newMap);
+
+    // Р—Р°РїСЂРµС‚ РєРѕРїРёСЂРѕРІР°РЅРёСЏ
+    TileBasedLocation(const TileBasedLocation&) = delete;
+    TileBasedLocation& operator=(const TileBasedLocation&) = delete;
+};
+
+#endif // TILEBASEDLOCATION_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\World\TileLayer.h ===
+// World/TileLayer.h
+#ifndef TILELAYER_H
+#define TILELAYER_H
+#include "Types/Types.h"
+#include <vector>
+#include <memory>
+#include <algorithm>
+
+class Entity;
+
+enum class LayerType {
+    BASE,      // РћСЃРЅРѕРІР°РЅРёРµ: GROUND, WATER, MOUNTAIN, ROAD, BUILDING, VOID
+    OBJECT,    // РћР±СЉРµРєС‚С‹: TREE, HOUSE, ROAD_SEGMENT - РўРћР›Р¬РљРћ РћР”РРќ РќРђ РўРђР™Р›!
+    DECORATION // Р”РµРєРѕСЂ: РљРђРњРќР, Р¦Р’Р•РўР«, РўР РђР’Рђ - РќР• Р’Р›РРЇР•Рў РќРђ РџР РћРҐРћР”РРњРћРЎРўР¬
+};
+
+struct TileLayer {
+    TileType baseType = TileType::GROUND;
+    int groundVariant = 0; 
+    TileType objectType = TileType::VOID;
+    std::vector<TileType> decorationLayers;
+    std::vector<std::shared_ptr<Entity>> entities;
+
+    TileLayer() = default;
+
+    bool isWalkable() const {
+        // РћСЃРЅРѕРІР°РЅРёРµ
+        switch (baseType) {
+        case TileType::WATER:
+        case TileType::VOID:
+            return false;
+        case TileType::SPAWN:
+            // SPAWN РІСЃРµРіРґР° РїСЂРѕС…РѕРґРёРј
+            return true;
+        case TileType::MOUNTAIN:
+        case TileType::BUILDING:
+            // Р­С‚Рё С‚РёРїС‹ РєР°Рє РѕСЃРЅРѕРІР°РЅРёРµ вЂ” РќР• РїСЂРѕС…РѕРґРёРјС‹
+            return false;
+        default:
+            break; // GROUND, ROAD_SEGMENT Рё С‚.Рї. вЂ” РїСЂРѕС…РѕРґРёРјС‹
+        }
+
+        // РћР±СЉРµРєС‚С‹ вЂ” РѕРЅРё РјРѕРіСѓС‚ Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ РїСЂРѕС…РѕРґ!
+        switch (objectType) {
+        case TileType::MOUNTAIN:
+        case TileType::BUILDING:
+            return false; // Р­С‚Рё РѕР±СЉРµРєС‚С‹ вЂ” РЅРµРїСЂРѕС…РѕРґРёРјС‹!
+        default:
+            break; // TREE, HOUSE, ROAD_SEGMENT вЂ” РїСЂРѕС…РѕРґРёРјС‹ (РѕРЅРё РЅР° GROUND)
+        }
+
+        // Р”РµРєРѕСЂР°С†РёРё вЂ” РІСЃРµРіРґР° РїСЂРѕС…РѕРґРёРјС‹
+        return true;
+    }
+
+    // Р”РѕР±Р°РІРёС‚СЊ РѕР±СЉРµРєС‚ (РїСЂРѕРІРµСЂРєР° РЅР° СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚СЊ Рё СѓРЅРёРєР°Р»СЊРЅРѕСЃС‚СЊ)
+    bool addObject(TileType objType) {
+        // РќРµР»СЊР·СЏ РґРѕР±Р°РІР»СЏС‚СЊ РѕР±СЉРµРєС‚С‹ РЅР° РІРѕРґСѓ
+        if (baseType == TileType::WATER) {
+            return false;
+        }
+        // РўРѕР»СЊРєРѕ РѕРґРёРЅ РѕР±СЉРµРєС‚ РЅР° С‚Р°Р№Р»
+        if (objectType != TileType::VOID) {
+            return false;
+        }
+        // РџСЂРѕРІРµСЂРєР° С‚РёРїРѕРІ РѕР±СЉРµРєС‚РѕРІ
+        switch (objType) {
+        case TileType::TREE:
+        case TileType::HOUSE:
+        case TileType::ROAD_SEGMENT:
+        case TileType::RUIN:
+            // Р­С‚Рё РѕР±СЉРµРєС‚С‹ РјРѕРіСѓС‚ Р±С‹С‚СЊ С‚РѕР»СЊРєРѕ РЅР° GROUND
+            if (baseType != TileType::GROUND) {
+                return false;
+            }
+            break;
+        case TileType::MOUNTAIN:
+        case TileType::BUILDING:
+            // Р­С‚Рё РѕР±СЉРµРєС‚С‹ Р—РђРњР•РќРЇР®Рў СЃРѕР±РѕР№ GROUND, РЅРѕ РЅРµ РјРѕРіСѓС‚ Р±С‹С‚СЊ РЅР° WATER
+            // РћРЅРё СЃС‚Р°РЅРѕРІСЏС‚СЃСЏ РѕСЃРЅРѕРІРЅС‹Рј РѕР±СЉРµРєС‚РѕРј
+            break;
+        default:
+            // Р›СЋР±С‹Рµ РґСЂСѓРіРёРµ С‚РёРїС‹ РЅРµ СЏРІР»СЏСЋС‚СЃСЏ РѕР±СЉРµРєС‚Р°РјРё
+            return false;
+        }
+        objectType = objType;
+        return true;
+    }
+
+    // РЈРґР°Р»РёС‚СЊ РѕР±СЉРµРєС‚
+    bool removeObject(TileType objType) {
+        if (objectType == objType) {
+            objectType = TileType::VOID;
+            return true;
+        }
+        return false;
+    }
+
+    void addDecoration(TileType decType) {
+        if (decorationLayers.size() >= 3) return;
+        // Р”РµРєРѕСЂ РјРѕР¶РЅРѕ РґРѕР±Р°РІР»СЏС‚СЊ РўРћР›Р¬РљРћ РЅР° С‚СЂР°РІСѓ (GROUND)
+        if (baseType != TileType::GROUND) return;
+        decorationLayers.push_back(decType);
+    }
+
+    // РџРѕР»СѓС‡РёС‚СЊ РІСЃРµ С‚РёРїС‹ РґР»СЏ СЂРµРЅРґРµСЂР° (РїРѕСЂСЏРґРѕРє: Р±Р°Р·Р° -> РѕР±СЉРµРєС‚ -> РґРµРєРѕСЂ)
+    std::vector<TileType> getAllRenderTypes() const {
+        std::vector<TileType> result;
+        result.push_back(baseType);
+        if (objectType != TileType::VOID) {
+            result.push_back(objectType);
+        }
+        result.insert(result.end(), decorationLayers.begin(), decorationLayers.end());
+        return result;
+    }
+
+    // РџРѕР»СѓС‡РёС‚СЊ РѕР±СЉРµРєС‚ (РµСЃР»Рё РµСЃС‚СЊ)
+    TileType getObjectType() const { return objectType; }
+};
+#endif
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\World\TileMap.h ===
+// World/TileMap.h
+#ifndef TILEMAP_H
+#define TILEMAP_H
+
+#include <iostream>
+#include "Types/Types.h"
+#include "World/TileLayer.h"
+#include <vector>
+#include <memory>
+#include <utility>
+
+class Entity;
+
+class TileMap {
+private:
+    int width, height;
+    std::vector<std::vector<TileLayer>> layers;
+    std::vector<std::vector<TileType>> tiles; // РћСЃРЅРѕРІРЅС‹Рµ С‚Р°Р№Р»С‹
+
+public:
+    TileMap(int width, int height);
+    ~TileMap() = default;
+
+    int getWidth() const;
+    int getHeight() const;
+    bool isValidPosition(int x, int y) const;
+
+    void setTile(int x, int y, TileType type);
+    TileType getTile(int x, int y) const;
+
+    // Р”РѕР±Р°РІР»РµРЅРёРµ РѕР±СЉРµРєС‚РѕРІ Рё РґРµРєРѕСЂР°С†РёР№
+    bool addObjectToTile(int x, int y, TileType objectType);
+    void addDecorationToTile(int x, int y, TileType decorationType);
+
+    const TileLayer& getLayer(int x, int y) const;
+    TileLayer& getLayer(int x, int y);
+
+    bool isWalkable(int x, int y) const;
+
+    // РњРµС‚РѕРґС‹ РґР»СЏ СЂР°Р±РѕС‚С‹ СЃ СЃСѓС‰РЅРѕСЃС‚СЏРјРё РЅР° С‚Р°Р№Р»Рµ
+    const std::vector<std::shared_ptr<Entity>>& getEntities(int x, int y) const;
+    bool addEntityToTile(std::shared_ptr<Entity> entity, int x, int y);
+    bool removeEntityFromTile(std::shared_ptr<Entity> entity, int x, int y);
+
+    // РџРѕРёСЃРє РїСѓСЃС‚РѕРіРѕ РїСЂРѕС…РѕРґРёРјРѕРіРѕ С‚Р°Р№Р»Р°
+    std::pair<int, int> findEmptyWalkableTile() const;
+
+    // Р—Р°РїСЂРµС‚ РєРѕРїРёСЂРѕРІР°РЅРёСЏ
+    TileMap(const TileMap&) = delete;
+    TileMap& operator=(const TileMap&) = delete;
+};
+
+#endif // TILEMAP_H
+
+=== FILE: C:\Users\Pasha\source\repos\EternalWanderer\EternalWanderer\src\World\VillageLocation.h ===
+// World/VillageLocation.h
+#ifndef VILLAGELOCATION_H
+#define VILLAGELOCATION_H
+
+#include "Location.h"
+#include <string>
+#include <memory>
+
+// Forward declarations
+class GameWorld;
+class Entity;
+
+class VillageLocation : public Location {
+private:
+    int population;
+    std::string villageType;
+
+public:
+    // Конструктор
+    VillageLocation(const std::string& name, const std::string& description,
+        GameWorld* world, const std::string& villageType = "Обычная");
+
+    // Переопределение виртуальных методов
+    void enter() override;
+    void exit() override;
+    void update(float deltaTime) override;
+
+    // Геттеры/сеттеры
+    int getPopulation() const;
+    void setPopulation(int population);
+    const std::string& getVillageType() const;
+    void setVillageType(const std::string& type);
+
+    // Специфичные методы для деревни
+    void addVillager(std::shared_ptr<Entity> villager);
+    void removeVillager(const std::shared_ptr<Entity>& villager);
+};
+
+#endif // VILLAGELOCATION_H
