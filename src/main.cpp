@@ -2,15 +2,12 @@
 #include "Core/Engine.h"
 #include "GameState/EnhancedPlayState.h"
 #include "World/AdvancedWorldGenerator.h"
-#include <windows.h>
-#include <fcntl.h>
-#include <io.h>
 #include <iostream>
 #include <memory>
+#include <locale>
 
 int main() {
-    SetConsoleOutputCP(CP_UTF8);
-    SetConsoleCP(CP_UTF8);
+    std::setlocale(LC_ALL, "");
     
     try {
         std::cout << "=== Eternal Wanderer - Enhanced AFK RPG ===" << std::endl;

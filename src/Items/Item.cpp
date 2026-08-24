@@ -1,5 +1,5 @@
 #include "Item.h"
-#include "Entity.h"
+#include "Entities/Entity.h"
 #include <iostream>
 #include <memory>
 Item::Item(const std::string& id, const std::string& name, const std::string& description,

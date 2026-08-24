@@ -10,6 +10,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cmath>
+#include <climits>
 #include <memory>
 
 AdvancedAI::AdvancedAI(const AIPersonality& personality)
@@ -17,7 +18,8 @@ AdvancedAI::AdvancedAI(const AIPersonality& personality)
     , currentState(AIState::IDLE)
     , gen(std::random_device{}())
     , dist(-1, 1)
-    , goalSystem(std::make_unique<GoalSystem>()) {
+    , goalSystem(std::make_unique<GoalSystem>())
+    , learningSystem(0.3f, 0.01f, 50) {
     emotionalSystem.setBaseMood(
         personality.aggression * 0.3f -
         personality.caution * 0.2f +
@@ -53,6 +55,15 @@ const EmotionalSystem& AdvancedAI::getEmotionalSystem() const {
 // 🔑 ДОБАВЛЕНО: геттер для GoalSystem
 GoalSystem* AdvancedAI::getGoalSystem() {
     return goalSystem.get();
+}
+
+// === Геттеры для LearningSystem ===
+LearningSystem& AdvancedAI::getLearningSystem() {
+    return learningSystem;
+}
+
+const LearningSystem& AdvancedAI::getLearningSystem() const {
+    return learningSystem;
 }
 
 // === Сеттеры ===
@@ -115,6 +126,47 @@ void AdvancedAI::assessThreats() {
 
 void AdvancedAI::assessOpportunities() {
     // Пока заглушка
+}
+
+// === Обучение и адаптация ===
+void AdvancedAI::learnFromAction(const std::string& situation, const std::string& action, float outcome) {
+    learningSystem.addExperience(situation, action, outcome);
+    
+    // Вывод для отладки
+    std::cout << "[Learning] " << situation << " -> " << action 
+              << " (outcome: " << outcome << ")" << std::endl;
+}
+
+void AdvancedAI::adaptToSituation(Entity* entity) {
+    if (!entity) return;
+    
+    // Определяем текущую ситуацию
+    std::string situationType;
+    
+    if (memorySystem.hasHostileEntities() || memorySystem.wasRecentlyAttacked()) {
+        situationType = "combat";
+    } else if (memorySystem.hasFriendlyEntities()) {
+        situationType = "social";
+    } else {
+        situationType = "exploration";
+    }
+    
+    // Получаем лучшее действие из обучения
+    std::string bestAction = learningSystem.getBestAction(situationType);
+    
+    if (!bestAction.empty()) {
+        // Применяем обученное поведение
+        std::cout << "[Adaptation] " << entity->getName() 
+                  << " использует опыт для ситуации '" << situationType 
+                  << "': " << bestAction << std::endl;
+        
+        // Здесь можно изменить состояние или параметры на основе лучшего действия
+        if (situationType == "combat" && bestAction == "aggressive_attack") {
+            personality.aggression = std::min(1.0f, personality.aggression + 0.1f);
+        } else if (situationType == "combat" && bestAction == "defensive_retreat") {
+            personality.caution = std::min(1.0f, personality.caution + 0.1f);
+        }
+    }
 }
 
 void AdvancedAI::makeDecision(Entity* entity) {
@@ -319,11 +371,15 @@ void AdvancedAI::executeSocialize(Entity* entity) {
         // Пока просто триггерим память
         memorySystem.addMemory("socialized_with", nearestNPC, 0.8f);
         emotionalSystem.addMoodModifier(0.1f);
+        
+        // Записываем успешный опыт социализации
+        learnFromAction("social_interaction", "initiate_conversation", 0.7f);
     }
     else {
         // Никого нет — продолжаем блуждать
         std::cout << entity->getName() << " ищет кого-нибудь для общения..." << std::endl;
         setState(AIState::WANDER);
+        learnFromAction("social_interaction", "search_for_company", 0.2f);
     }
 }
 void AdvancedAI::executeFlee(Entity* entity) {}
@@ -343,6 +399,10 @@ void AdvancedAI::executeAttack(Entity* entity) {
             5
         );
         EventManager::getInstance().emit(combatEvent);
+        
+        // Записываем результат атаки для обучения
+        // В реальной игре здесь нужно получить результат боя
+        learnFromAction("combat_attack", "direct_attack", 0.5f);
     }
 }
 void AdvancedAI::executeIdle(Entity* entity) {}
@@ -362,12 +422,15 @@ void AdvancedAI::update(float deltaTime, Entity* entity) {
         goalSystem->update(entity, deltaTime);
     }
 
-    // 2. Только если состояние НЕ установлено целями — принимаем решение
+    // 2. Адаптация к ситуации на основе обучения
+    adaptToSituation(entity);
+
+    // 3. Только если состояние НЕ установлено целями — принимаем решение
     if (currentState == AIState::IDLE || currentState == AIState::WANDER) {
         makeDecision(entity);
     }
 
-    // 3. Планируем движение
+    // 4. Планируем движение
     std::pair<int, int> newPosition = decideMovement(entity);
     if (newPosition.first != -1 && newPosition.second != -1 &&
         (newPosition.first != entity->getPosition().first || newPosition.second != entity->getPosition().second)) {
@@ -397,14 +460,19 @@ void AdvancedAI::onEntityEncounter(Entity* self, const std::shared_ptr<Entity>& 
         emotionalSystem.addMoodModifier(-0.2f);
         memorySystem.setLastAttackedTime();
         setCurrentTarget(other);
+        
+        // Записываем опыт встречи с врагом
+        learnFromAction("combat_encounter", "prepare_defense", 0.3f);
     }
     else if (dynamic_cast<Player*>(other.get()) != nullptr) {
         if (emotionalSystem.getMood() < -0.3f) {
             setFleeTarget(other);
+            learnFromAction("social_encounter", "avoid_conflict", 0.5f);
         }
         else if (personality.sociability > 0.7f) {
             setFollowTarget(other);
             memorySystem.setLastSocializedTime();
+            learnFromAction("social_encounter", "approach_friendly", 0.7f);
         }
     }
 }
