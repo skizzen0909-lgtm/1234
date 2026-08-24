@@ -1,27 +1,24 @@
 ```
-# Compiled and build artifacts
+# Compiled and binary files
 *.o
 *.obj
-*.exe
-*.dll
-*.so
-*.a
 *.out
 
 # Dependencies
+node_modules/
 venv/
 .venv/
 __pycache__/
 .mypy_cache/
 .pytest_cache/
-node_modules/
+target/
+.gradle/
 
-# Build directories
+# Build artifacts
 build/
 dist/
-target/
 
-# Editors
+# Editor/IDE files
 .vscode/
 .idea/
 *.swp
