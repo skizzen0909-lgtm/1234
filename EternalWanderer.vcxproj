@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\AI\AdvancedAI.cpp" />
+    <ClCompile Include="src\AI\EmotionalSystem.cpp" />
+    <ClCompile Include="src\AI\GoalSystem.cpp" />
+    <ClCompile Include="src\AI\MemorySystem.cpp" />
+    <ClCompile Include="src\Core\Engine.cpp" />
+    <ClCompile Include="src\Decisions\Decision.cpp" />
+    <ClCompile Include="src\Entities\Enemy.cpp" />
+    <ClCompile Include="src\Entities\Entity.cpp" />
+    <ClCompile Include="src\Entities\NPC.cpp" />
+    <ClCompile Include="src\Entities\Player.cpp" />
+    <ClCompile Include="src\Entities\VillagerNPC.cpp" />
+    <ClCompile Include="src\Events\CombatEvent.cpp" />
+    <ClCompile Include="src\Events\Event.cpp" />
+    <ClCompile Include="src\Events\EventManager.cpp" />
+    <ClCompile Include="src\Events\PeacefulActivityEvent.cpp" />
+    <ClCompile Include="src\Events\StoryDecisionEvent.cpp" />
+    <ClCompile Include="src\GameState\EnhancedPlayState.cpp" />
+    <ClCompile Include="src\GameState\GameState.cpp" />
+    <ClCompile Include="src\Graphics\AdvancedGraphicsSystem.cpp" />
+    <ClCompile Include="src\Graphics\ShaderManager.cpp" />
+    <ClCompile Include="src\Graphics\UISystem.cpp" />
+    <ClCompile Include="src\Inventory\Inventory.cpp" />
+    <ClCompile Include="src\Items\Item.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Optimizations\SpatialPartition.cpp" />
+    <ClCompile Include="src\Quests\FetchQuest.cpp" />
+    <ClCompile Include="src\Quests\Quest.cpp" />
+    <ClCompile Include="src\Systems\AbilitySystem.cpp" />
+    <ClCompile Include="src\Systems\CombatSystem.cpp" />
+    <ClCompile Include="src\Systems\DecisionSystem.cpp" />
+    <ClCompile Include="src\Systems\QuestSystem.cpp" />
+    <ClCompile Include="src\Systems\RelationshipSystem.cpp" />
+    <ClCompile Include="src\Systems\SaveManager.cpp" />
+    <ClCompile Include="src\Systems\SkillSystem.cpp" />
+    <ClCompile Include="src\UI\DialogSystem.cpp" />
+    <ClCompile Include="src\UI\InventoryUI.cpp" />
+    <ClCompile Include="src\UI\QuestLogUI.cpp" />
+    <ClCompile Include="src\UI\SkillTreeUI.cpp" />
+    <ClCompile Include="src\UI\UIManager.cpp" />
+    <ClCompile Include="src\World\AdvancedWorldGenerator.cpp" />
+    <ClCompile Include="src\World\BiomeSystem.cpp" />
+    <ClCompile Include="src\World\Ecosystem.cpp" />
+    <ClCompile Include="src\World\GameWorld.cpp" />
+    <ClCompile Include="src\World\Location.cpp" />
+    <ClCompile Include="src\World\NoiseGenerator.cpp" />
+    <ClCompile Include="src\World\TileBasedLocation.cpp" />
+    <ClCompile Include="src\World\TileMap.cpp" />
+    <ClCompile Include="src\World\VillageLocation.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\AI\AdvancedAI.h" />
+    <ClInclude Include="src\AI\AIBase.h" />
+    <ClInclude Include="src\AI\AIPersonality.h" />
+    <ClInclude Include="src\AI\EmotionalSystem.h" />
+    <ClInclude Include="src\AI\GoalSystem.h" />
+    <ClInclude Include="src\AI\MemorySystem.h" />
+    <ClInclude Include="src\Core\Engine.h" />
+    <ClInclude Include="src\Decisions\Decision.h" />
+    <ClInclude Include="src\Entities\Enemy.h" />
+    <ClInclude Include="src\Entities\Entity.h" />
+    <ClInclude Include="src\Entities\NPC.h" />
+    <ClInclude Include="src\Entities\Player.h" />
+    <ClInclude Include="src\Entities\VillagerNPC.h" />
+    <ClInclude Include="src\Events\CombatEvent.h" />
+    <ClInclude Include="src\Events\Event.h" />
+    <ClInclude Include="src\Events\EventManager.h" />
+    <ClInclude Include="src\Events\PeacefulActivityEvent.h" />
+    <ClInclude Include="src\Events\StoryDecisionEvent.h" />
+    <ClInclude Include="src\GameState\EnhancedPlayState.h" />
+    <ClInclude Include="src\GameState\GameState.h" />
+    <ClInclude Include="src\Graphics\AdvancedGraphicsSystem.h" />
+    <ClInclude Include="src\Graphics\ShaderManager.h" />
+    <ClInclude Include="src\Graphics\UISystem.h" />
+    <ClInclude Include="src\Inventory\Inventory.h" />
+    <ClInclude Include="src\Items\Item.h" />
+    <ClInclude Include="src\Optimizations\SpatialPartition.h" />
+    <ClInclude Include="src\Quests\FetchQuest.h" />
+    <ClInclude Include="src\Quests\Quest.h" />
+    <ClInclude Include="src\Quests\QuestTypes.h" />
+    <ClInclude Include="src\Systems\AbilitySystem.h" />
+    <ClInclude Include="src\Systems\CombatSystem.h" />
+    <ClInclude Include="src\Systems\DecisionSystem.h" />
+    <ClInclude Include="src\Systems\QuestSystem.h" />
+    <ClInclude Include="src\Systems\RelationshipSystem.h" />
+    <ClInclude Include="src\Systems\SaveManager.h" />
+    <ClInclude Include="src\Systems\SkillSystem.h" />
+    <ClInclude Include="src\Types\Types.h" />
+    <ClInclude Include="src\UI\DialogSystem.h" />
+    <ClInclude Include="src\UI\InventoryUI.h" />
+    <ClInclude Include="src\UI\QuestLogUI.h" />
+    <ClInclude Include="src\UI\SkillTreeUI.h" />
+    <ClInclude Include="src\UI\UIManager.h" />
+    <ClInclude Include="src\Utils\PerlinNoise.h" />
+    <ClInclude Include="src\World\AdvancedWorldGenerator.h" />
+    <ClInclude Include="src\World\BiomeSystem.h" />
+    <ClInclude Include="src\World\Ecosystem.h" />
+    <ClInclude Include="src\World\GameWorld.h" />
+    <ClInclude Include="src\World\Location.h" />
+    <ClInclude Include="src\World\NoiseGenerator.h" />
+    <ClInclude Include="src\World\TileBasedLocation.h" />
+    <ClInclude Include="src\World\TileLayer.h" />
+    <ClInclude Include="src\World\TileMap.h" />
+    <ClInclude Include="src\World\VillageLocation.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\x64\Debug\assets\textures\entities\default.png" />
+    <Image Include="..\x64\Debug\assets\textures\entities\enemy.png" />
+    <Image Include="..\x64\Debug\assets\textures\entities\npc.png" />
+    <Image Include="..\x64\Debug\assets\textures\entities\player.png" />
+    <Image Include="..\x64\Debug\assets\textures\entities\villager.png" />
+    <Image Include="..\x64\Debug\assets\textures\tiles\forest.png" />
+    <Image Include="..\x64\Debug\assets\textures\tiles\grass.png" />
+    <Image Include="..\x64\Debug\assets\textures\tiles\mountain.png" />
+    <Image Include="..\x64\Debug\assets\textures\tiles\road.png" />
+    <Image Include="..\x64\Debug\assets\textures\tiles\water.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="..\x64\Debug\assets\fonts\arial.ttf" />
+    <Font Include="..\x64\Debug\assets\fonts\DejaVuSans.ttf" />
+    <Font Include="..\x64\Debug\assets\fonts\NotoSans-Regular.ttf" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="x64\Debug\assets\shaders\lighting.frag" />
+    <None Include="x64\Debug\assets\shaders\postprocess.frag" />
+    <None Include="x64\Debug\assets\shaders\terrain.frag" />
+    <None Include="x64\Debug\assets\shaders\terrain.vert" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{b8836fc8-7c00-4cba-b0c7-81f1753b7c6c}</ProjectGuid>
+    <RootNamespace>EternalWanderer</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\SFML3\include;$(ProjectDir)src;$(ProjectDir)lib;$(ProjectDir)lib\nlohmann;$(ProjectDir)src\Entities;$(ProjectDir)src\World;C:\vcpkg\installed\x64-windows\include;C:\SFML-2.6.1\include;$(SolutionDir)extern\SFML\include;$(SolutionDir)extern\SFML\include</AdditionalIncludeDirectories>
+      <UseUnicodeForAssemblerListing>
+      </UseUnicodeForAssemblerListing>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\SFML3\lib;C:\vcpkg\installed\x64-windows\lib;C:\SFML-2.6.1\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sfml-graphics-d.lib;sfml-window-d.lib;sfml-system-d.lib;sfml-audio-d.lib;sfml-network-d.lib;opengl32.lib;winmm.lib;gdi32.lib</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+      <Message>Копирование assets в выходную директорию...</Message>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <UseUnicodeForAssemblerListing>
+      </UseUnicodeForAssemblerListing>
+      <AdditionalIncludeDirectories>C:\SFML3\include;;$(SolutionDir)extern\SFML\include;$(SolutionDir)extern\SFML\include</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>sfml-graphics-d.lib;sfml-window-d.lib;sfml-system-d.lib;sfml-audio-d.lib;sfml-network-d.lib;opengl32.lib;winmm.lib;gdi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\SFML3\lib;</AdditionalLibraryDirectories>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\SFML3\include;$(ProjectDir)src;$(ProjectDir)lib;$(ProjectDir)lib\nlohmann;$(ProjectDir)src\Entities;$(ProjectDir)src\World;C:\vcpkg\installed\x64-windows\include;C:\SFML-2.6.1\include;$(SolutionDir)extern\SFML\include;$(SolutionDir)extern\SFML\include</AdditionalIncludeDirectories>
+      <UseUnicodeForAssemblerListing>
+      </UseUnicodeForAssemblerListing>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\SFML3\lib;C:\vcpkg\installed\x64-windows\lib;C:\SFML-2.6.1\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sfml-graphics-d.lib;sfml-window-d.lib;sfml-system-d.lib;sfml-audio-d.lib;sfml-network-d.lib;opengl32.lib;winmm.lib;gdi32.lib</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <UseUnicodeForAssemblerListing>
+      </UseUnicodeForAssemblerListing>
+      <AdditionalIncludeDirectories>C:\SFML3\include;;$(SolutionDir)extern\SFML\include;$(SolutionDir)extern\SFML\include</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>sfml-graphics-d.lib;sfml-window-d.lib;sfml-system-d.lib;sfml-audio-d.lib;sfml-network-d.lib;opengl32.lib;winmm.lib;gdi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\SFML3\lib;</AdditionalLibraryDirectories>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
