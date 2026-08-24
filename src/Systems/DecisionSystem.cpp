@@ -1,7 +1,7 @@
 // Systems/DecisionSystem.cpp
 #include "DecisionSystem.h"
 #include "Decisions/Decision.h"
-#include "Entity.h"
+#include "Entities/Entity.h"
 #include "UI/DialogSystem.h"
 #include "Events/Event.h"
 #include <iostream>

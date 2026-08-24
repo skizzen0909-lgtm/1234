@@ -3,6 +3,7 @@
 #include "Entities/Entity.h"
 #include <iostream>
 #include <sstream>
+#include <cmath>
 
 SkillTreeUI::SkillTreeUI(const sf::Font& font, sf::RenderWindow* window)
     : visible(false), font(font), selectedNodeIndex(-1), window(window) {

@@ -7,6 +7,7 @@
 #include "AI/MemorySystem.h"
 #include "AI/EmotionalSystem.h"
 #include "AI/GoalSystem.h" 
+#include "AI/LearningSystem.h"
 #include <memory>
 #include <vector>
 #include <random>
@@ -30,6 +31,7 @@ private:
     MemorySystem memorySystem;
     EmotionalSystem emotionalSystem;
     std::unique_ptr<GoalSystem> goalSystem; 
+    LearningSystem learningSystem;
 
     AIState currentState;
     std::mt19937 gen;
@@ -48,6 +50,9 @@ private:
     void assessOpportunities();
     void makeDecision(Entity* entity);
    
+    // Обучение и адаптация
+    void learnFromAction(const std::string& situation, const std::string& action, float outcome);
+    void adaptToSituation(Entity* entity);
 
     // Логика движения
     std::pair<int, int> wanderLogic(Entity* entity);
@@ -77,12 +82,16 @@ public:
     EmotionalSystem& getEmotionalSystem();
     const EmotionalSystem& getEmotionalSystem() const;
     GoalSystem* getGoalSystem();
+    LearningSystem& getLearningSystem();
+    const LearningSystem& getLearningSystem() const;
+    
     // Сеттеры
     void setPersonality(const AIPersonality& newPersonality);
     void setFollowTarget(const std::shared_ptr<Entity>& target);
     void setFleeTarget(const std::shared_ptr<Entity>& target);
     void setCurrentTarget(const std::shared_ptr<Entity>& target);
     void setState(AIState newState);
+    
     // Основные методы
     void update(float deltaTime, Entity* entity) override;
     void onEntityEncounter(Entity* self, const std::shared_ptr<Entity>& other) override;
