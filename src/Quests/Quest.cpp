@@ -1,7 +1,7 @@
 ﻿// Quests/Quest.cpp
 
 #include "Quest.h"
-#include "Entity.h"
+#include "Entities/Entity.h"
 #include <stdexcept>
 
 Quest::Quest(const std::string& questId, const std::string& title,

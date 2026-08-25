@@ -1,7 +1,7 @@
 // Decisions/Decision.cpp
 
 #include "Decision.h"
-#include "Entity.h"
+#include "Entities/Entity.h"
 #include "Events/Event.h"
 #include <iostream>
 #include <algorithm>
